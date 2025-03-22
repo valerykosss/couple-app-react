@@ -1,25 +1,27 @@
-import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import '@ant-design/v5-patch-for-react-19';
+import { BrowserRouter, Route, Routes } from 'react-router';
+import LandingPage from "./pages/LandingPage";
+import NotFoundPage from './pages/NotFoundPage';
+import GeneralPage from './pages/GeneralPage';
+import TimetablePage from './pages/TimetablePage';
+import AppLayout from './components/layouts/AppLayout';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+
+          {/* защищенные страницы */}
+          <Route path="/app" element={<AppLayout />}>
+            <Route path="" element={<GeneralPage />} />
+            <Route path="timetable" element={<TimetablePage />} />
+          </Route>
+          
+        <Route path="*" element={<NotFoundPage/>} />
+      </Routes>
+  </BrowserRouter>
   );
 }
 
