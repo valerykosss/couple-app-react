@@ -6,8 +6,10 @@ import NotFoundPage from './pages/NotFoundPage';
 import GeneralPage from './pages/GeneralPage';
 import TimetablePage from './pages/TimetablePage';
 import AppLayout from './components/layouts/AppLayout';
+import useAuthCheck from './hooks /useAuthCheck';
 
 function App() {
+  useAuthCheck();
   return (
     <BrowserRouter>
       <Routes>

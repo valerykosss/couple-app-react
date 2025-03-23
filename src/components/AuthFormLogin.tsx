@@ -2,9 +2,10 @@ import { Form, Input, Button, FormProps, message } from 'antd';
 import { InfoCircleOutlined, GoogleOutlined } from '@ant-design/icons';
 import { RuleObject } from 'antd/es/form';
 import { useDispatch } from 'react-redux';
-import { action } from '../store';
+import { action, AppDispatch } from '../store';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from 'react-router';
+import handleGoogleAuth from '../utils/googleAuth';
 
 type AuthFormLoginProps = {
   toggleForm: () => void;
@@ -18,20 +19,24 @@ type FieldType = {
 
 export default function AuthFormLogin(props: AuthFormLoginProps) {
   const [form] = Form.useForm();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+
+  const handleGoogleLogin = () => handleGoogleAuth(false, dispatch, navigate, props.onClose);
 
   const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
     const { email, password } = values;
     const auth = getAuth();
 
     try {
+      console.log('Попытка авторизоваться с email:', email); // Логируем попытку авторизации
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       const token = await user.getIdToken();
+      console.log('Авторизация прошла успешно, получен токен:', token);
 
-      message.success(`Добро пожаловать, ${user.email}!`);
+      message.success(`Добро пожаловать, ${user.displayName}!`);
       dispatch(action.authSlice.initUser({
         email: user.email,
         id: user.uid,
@@ -40,33 +45,13 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
       props.onClose();
       navigate('/app');
       
-    } catch (error: any) {
-      console.error("Ошибка авторизации:", error.message);
-      message.error("Ошибка входа. Проверьте email и пароль.");
-
-      form.setFields([
-        {
-          name: "email",
-          errors: error.code === "auth/user-not-found" ? ["Пользователь не найден"] : [],
-        },
-        {
-          name: "password",
-          errors: error.code === "auth/wrong-password" ? ["Неверный пароль"] : [],
-        },
-      ]);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Ошибка авторизации:", error.message);
+        message.error("Ошибка входа. Проверьте email и пароль.");
+      }
     }
   };
-
-  const passwordRules: RuleObject[] = [
-    {
-      required: true,
-      message: 'Введите пароль',
-    },
-    {
-      pattern: /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d\W]{6,}$/,
-      message: 'Пароль должен быть не короче 6 символов, содержать только латинские буквы, минимум одну строчную букву и одну цифру',
-    },
-  ];
 
   return (
     <Form
@@ -76,7 +61,6 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
       layout="vertical"
       requiredMark="optional"
     >
-
       <Form.Item
         label="Email"
         name="email"
@@ -92,7 +76,10 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
         tooltip={{ title: 'Пароль должен быть не короче 6 символов, содержать только латинские буквы, минимум одну строчную букву и одну цифру', icon: <InfoCircleOutlined /> }}
         label="Пароль"
         name="password"
-        rules={passwordRules}
+        rules={[
+          { required: true, message: 'Введите пароль' },
+          { pattern: /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d\W]{6,}$/, message: 'Пароль должен быть не короче 6 символов и содержать минимум одну заглавную букву и одну цифру' },
+        ]}
       >
         <Input.Password />
       </Form.Item>
@@ -105,8 +92,8 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
       </Form.Item>
 
       <Form.Item>
-        <Button type="default" icon={<GoogleOutlined />} block>
-            Авторизоваться через Google
+        <Button type="default" icon={<GoogleOutlined />} block onClick={handleGoogleLogin}>
+          Авторизоваться через Google
         </Button>
       </Form.Item>
 
@@ -117,4 +104,4 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
       </Form.Item>
     </Form>
   );
-};
+}
