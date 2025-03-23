@@ -15,11 +15,9 @@ const uiSlice = createSlice({
   initialState,
   reducers: {
     setAuthModalOpen(state, action: PayloadAction<boolean>) {
-      console.log(`Setting isAuthModalOpen to: ${action.payload}`); // Логируем изменение состояния
       state.isAuthModalOpen = action.payload;
     },
     setLoggingOut(state, action: PayloadAction<boolean>) {
-      console.log(`Setting isLoggingOut to: ${action.payload}`); // Логируем изменение состояния
       state.isLoggingOut = action.payload;
     },
   },

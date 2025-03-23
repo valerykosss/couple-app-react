@@ -22,4 +22,6 @@ export type RootState = ReturnType<typeof store.getState>;
 //useSelector –– позволяет извлекать данные из состояния(state) хранилища(store) Redux с помощью функции селектора.
 export const useTypedSelector: TypedUseSelectorHook<RootState> = useSelector;
 
+export type AppDispatch = typeof store.dispatch;
+
 export default store;

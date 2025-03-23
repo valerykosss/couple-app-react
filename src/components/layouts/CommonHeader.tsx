@@ -1,11 +1,12 @@
 import { Button, Layout, message, Modal } from "antd";
 import { useNavigate } from "react-router";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { getAuth, signOut } from "firebase/auth";
 import { action, useTypedSelector } from "../../store";
 import AuthFormLogin from "../AuthFormLogin";
 import AuthFormRegister from "../AuthFormRegister";
 import { useState } from "react";
+import { Link } from "react-router";
 
 const { Header } = Layout;
 
@@ -17,7 +18,6 @@ export default function CommonHeader() {
   const dispatch = useDispatch();
   const token = useTypedSelector((state) => state.authSlice.token);
   const isAuthModalOpen = useTypedSelector((state) => state.uiSlice.isAuthModalOpen);
-  const isLoggingOut = useTypedSelector((state) => state.uiSlice.isLoggingOut);
 
   const toggleForm = () => {
     setIsLoginForm((prev) => !prev);
@@ -34,26 +34,25 @@ export default function CommonHeader() {
   };
 
   const handleLogout = async () => {
-    console.log("Logging out...");
     const auth = getAuth();
     try {
       dispatch(action.uiSlice.setLoggingOut(true));
-      console.log("isLoggingOut set to true");
-  
       await signOut(auth);
+
+      // Очищаем localStorage
+      localStorage.removeItem("authUser");
+
       dispatch(action.authSlice.removeUser());
       dispatch(action.uiSlice.setAuthModalOpen(false));
-      console.log("isAuthModalOpen set to false");
-  
-      navigate("/", { replace: true, state: undefined });
-      message.success("Вы успешно вышли из системы!");
-  
-      //ОТКЛАДЫВАЕМ СБРОС isLoggingOut
+
       setTimeout(() => {
+        navigate("/", { replace: true });
+        message.success("Вы успешно вышли из системы!");
+
         dispatch(action.uiSlice.setLoggingOut(false));
-        console.log("isLoggingOut set to false");
-      }, 100); //задержка чтобы navigate успел отработать
+      }, 100);
     } catch (error) {
+      console.error("Ошибка при выходе:", error);
       message.error(`Ошибка при выходе: ${error}!`);
       dispatch(action.uiSlice.setLoggingOut(false));
     }
@@ -61,11 +60,21 @@ export default function CommonHeader() {
 
   return (
     <>
-      <Header>
-        <div />
-        <Button onClick={token ? handleLogout : handleLogin}>
-          {token ? "Выйти" : "Войти"}
-        </Button>
+      <Header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Link to="/">
+          Главная
+        </Link>
+
+        <div>
+          {token && (
+            <Link to="/app" style={{ marginRight: "10px" }}>
+              Личный кабинет
+            </Link>
+          )}
+          <Button onClick={token ? handleLogout : handleLogin}>
+            {token ? "Выйти" : "Войти"}
+          </Button>
+        </div>
       </Header>
 
       <Modal
@@ -78,7 +87,7 @@ export default function CommonHeader() {
         {isLoginForm ? (
           <AuthFormLogin onClose={handleCloseForm} key={formKey} toggleForm={toggleForm} />
         ) : (
-          <AuthFormRegister key={formKey} toggleForm={toggleForm} />
+          <AuthFormRegister onClose={handleCloseForm} key={formKey} toggleForm={toggleForm} />
         )}
       </Modal>
     </>

@@ -6,20 +6,25 @@ import NotFoundPage from './pages/NotFoundPage';
 import GeneralPage from './pages/GeneralPage';
 import TimetablePage from './pages/TimetablePage';
 import AppLayout from './components/layouts/AppLayout';
-import useAuthCheck from './hooks /useAuthCheck';
+import useAuthCheck from './hooks/useAuthCheck';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
-  useAuthCheck();
+  const loading = useAuthCheck();
+
+  if (loading) return <p>Загрузка...</p>;
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
 
-          {/* защищенные страницы */}
+        <Route element={<ProtectedRoute loading={loading} />}>
           <Route path="/app" element={<AppLayout />}>
             <Route path="" element={<GeneralPage />} />
             <Route path="timetable" element={<TimetablePage />} />
           </Route>
+        </Route>
           
         <Route path="*" element={<NotFoundPage/>} />
       </Routes>
