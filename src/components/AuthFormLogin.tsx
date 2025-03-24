@@ -29,12 +29,10 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
     const auth = getAuth();
 
     try {
-      console.log('Попытка авторизоваться с email:', email); // Логируем попытку авторизации
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       const token = await user.getIdToken();
-      console.log('Авторизация прошла успешно, получен токен:', token);
 
       message.success(`Добро пожаловать, ${user.displayName}!`);
       dispatch(action.authSlice.initUser({
@@ -43,7 +41,6 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
         token: token, 
       }));
       props.onClose();
-      navigate('/app');
       
     } catch (error: unknown) {
       if (error instanceof Error) {

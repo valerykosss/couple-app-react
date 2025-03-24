@@ -30,40 +30,32 @@ export default function CommonHeader() {
   };
 
   const handleLogin = () => {
-    dispatch(action.uiSlice.setAuthModalOpen(true));
+    dispatch(action.uiSlice.setAuthModalOpen(true)); 
   };
 
   const handleLogout = async () => {
     const auth = getAuth();
     try {
       dispatch(action.uiSlice.setLoggingOut(true));
+      
       await signOut(auth);
-
-      // Очищаем localStorage
+  
       localStorage.removeItem("authUser");
-
       dispatch(action.authSlice.removeUser());
       dispatch(action.uiSlice.setAuthModalOpen(false));
-
-      setTimeout(() => {
-        navigate("/", { replace: true });
-        message.success("Вы успешно вышли из системы!");
-
-        dispatch(action.uiSlice.setLoggingOut(false));
-      }, 100);
+  
+      //тут не убирать!
+      navigate("/", { replace: true });
+      message.success("Вы успешно вышли из системы!");
     } catch (error) {
-      console.error("Ошибка при выходе:", error);
       message.error(`Ошибка при выходе: ${error}!`);
-      dispatch(action.uiSlice.setLoggingOut(false));
     }
   };
 
   return (
     <>
       <Header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Link to="/">
-          Главная
-        </Link>
+        <Link to="/">Главная</Link>
 
         <div>
           {token && (

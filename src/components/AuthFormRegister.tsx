@@ -49,7 +49,6 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
       props.toggleForm(); 
 
     } catch (error: any) {
-      console.error("Ошибка регистрации:", error.message);
       message.error("Ошибка регистрации. Проверьте данные.");
 
       form.setFields([

@@ -26,8 +26,7 @@ export default function AppLayout() {
     {
       key: "timetable",
       icon: <UserOutlined />,
-      label: <Link to="/app/timetable">Расписание</Link>,
-      defaultSelectedKeys: ["1"],
+      label: <Link to="/app/timetable">Расписание</Link>
     },
   ];
 
