@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Layout, Menu } from "antd";
-import { UserOutlined, HomeOutlined } from "@ant-design/icons";
+import { UserOutlined, HomeOutlined, UserAddOutlined, CalendarOutlined } from "@ant-design/icons";
 import { Link } from "react-router"; // <-- исправленный импорт
 import CommonHeader from "./CommonHeader";
 import { Outlet } from "react-router";
@@ -27,6 +27,11 @@ export default function AppLayout() {
       key: "timetable",
       icon: <UserOutlined />,
       label: <Link to="/app/timetable">Расписание</Link>
+    },
+    {
+      key: "calendar",
+      icon: <CalendarOutlined/>,
+      label: <Link to="/app/calendar">Календарь</Link>
     },
   ];
 

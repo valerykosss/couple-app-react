@@ -8,6 +8,7 @@ import TimetablePage from './pages/TimetablePage';
 import AppLayout from './components/layouts/AppLayout';
 import useAuthCheck from './hooks/useAuthCheck';
 import ProtectedRoute from './components/ProtectedRoute';
+import CalendarPage from './pages/CalendarPage';
 
 function App() {
   const loading = useAuthCheck();
@@ -23,6 +24,7 @@ function App() {
           <Route path="/app" element={<AppLayout />}>
             <Route path="" element={<GeneralPage />} />
             <Route path="timetable" element={<TimetablePage />} />
+            <Route path="calendar" element={<CalendarPage />} />
           </Route>
         </Route>
           

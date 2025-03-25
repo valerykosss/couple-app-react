@@ -6,27 +6,28 @@ import { action, AppDispatch } from "../store";
 export default async function handleGoogleAuth(isRegister: boolean, dispatch: AppDispatch, navigate: Function, onClose: Function) {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
+  
+  provider.addScope('https://www.googleapis.com/auth/calendar');
+  provider.addScope('https://www.googleapis.com/auth/calendar.events');
 
-  console.log("Инициализация аутентификации через Google"); // Логируем начало аутентификации
 
   try {
-    console.log("Попытка входа через Google..."); // Логируем попытку входа через Google
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    console.log("Аутентификация успешна, пользователь:", user.email); // Логируем успешную аутентификацию пользователя
-    const token = await user.getIdToken();
-    console.log("Токен получен:", token); // Логируем полученный токен
-
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const googleAccessToken = credential?.accessToken; // Токен для Google API
+    
+    const token = await user.getIdToken(); // Firebase ID token
+    
     const userData = {
       token,
+      googleAccessToken,
       email: user.email || "",
       id: user.uid,
     };
     localStorage.setItem("authUser", JSON.stringify(userData));
 
-
     if (isRegister) {
-      console.log("Регистрируем пользователя в базе данных..."); // Логируем начало регистрации
       const db = getFirestore();
       await setDoc(
         doc(db, "users", user.uid),
@@ -38,7 +39,6 @@ export default async function handleGoogleAuth(isRegister: boolean, dispatch: Ap
         },
         { merge: true }
       );
-      console.log("Пользователь зарегистрирован в базе данных"); // Логируем успешную регистрацию
     }
 
     message.success(`Добро пожаловать, ${user.displayName || "пользователь"}!`);
@@ -50,11 +50,14 @@ export default async function handleGoogleAuth(isRegister: boolean, dispatch: Ap
         token: token,
       })
     );
+    localStorage.setItem("googleAccessToken", googleAccessToken || "");
 
-    console.log("Пользователь успешно авторизован и данные сохранены в Redux"); // Логируем успешную авторизацию
+
     onClose();
+    
+    //console.log("Google Access Token:", googleAccessToken);
   } catch (error: unknown) {
-    console.error("Ошибка входа через Google:", error); // Логируем ошибку
+    //console.error("Ошибка входа через Google:", error);
     message.error("Ошибка входа через Google.");
   }
 };

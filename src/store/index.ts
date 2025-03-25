@@ -12,14 +12,14 @@ export const action = {
 const store = configureStore({
     reducer: {
         authSlice: authSlice.reducer,
-        uiSlice: uiSlice.reducer,
+        uiSlice: uiSlice.reducer
     }
 });
 
 //значение результата выполнения функции store
 export type RootState = ReturnType<typeof store.getState>;
 
-//useSelector –– позволяет извлекать данные из состояния(state) хранилища(store) Redux с помощью функции селектора.
+//useSelector позволяет извлекать данные из состояния(state) хранилища(store) Redux с помощью функции селектора
 export const useTypedSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export type AppDispatch = typeof store.dispatch;
