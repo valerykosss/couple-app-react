@@ -41,6 +41,7 @@ export default function CommonHeader() {
       await signOut(auth);
   
       localStorage.removeItem("authUser");
+      // localStorage.removeItem("googleAccessToken");
       dispatch(action.authSlice.removeUser());
       dispatch(action.uiSlice.setAuthModalOpen(false));
   

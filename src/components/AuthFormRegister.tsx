@@ -3,10 +3,10 @@ import { Form, Input, Button, FormProps, message } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { RuleObject } from 'antd/es/form';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, getFirestore } from "firebase/firestore"; 
+import { doc, setDoc, getFirestore } from "firebase/firestore";
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
-import { action, AppDispatch } from '../store';
+import { AppDispatch } from '../store';
 import handleGoogleAuth from '../utils/googleAuth';
 
 type AuthFormRegisterProps = {
@@ -15,18 +15,25 @@ type AuthFormRegisterProps = {
 }
 
 type FieldType = {
-    password: string;
-    confirmPassword: string;
-    email: string;
-    username: string;
-  };
+  password: string;
+  confirmPassword: string;
+  email: string;
+  username: string;
+};
 
 export default function AuthFormRegister(props: AuthFormRegisterProps) {
   const [form] = Form.useForm();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const handleGoogleRegister = () => handleGoogleAuth(true, dispatch, navigate, props.onClose);
+  const handleGoogleRegister = () =>
+    handleGoogleAuth({
+      isRegister: false,
+      dispatch,
+      navigate,
+      onClose: props.onClose,
+      showWelcomeMessage: true
+    });
 
   const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
     const { email, password, username } = values;
@@ -46,7 +53,7 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
         createdAt: new Date().toISOString(),
       });
 
-      props.toggleForm(); 
+      props.toggleForm();
 
     } catch (error: any) {
       message.error("Ошибка регистрации. Проверьте данные.");
@@ -82,16 +89,16 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
       message: 'Подтвердите пароль'
     },
     {
-        validator(_, value) {
-            const password = form.getFieldValue('password');
-            if (!value) {
-              return Promise.resolve();
-            }
-            if (value === password) {
-              return Promise.resolve();
-            }
-            return Promise.reject('Пароли не совпадают');
+      validator(_, value) {
+        const password = form.getFieldValue('password');
+        if (!value) {
+          return Promise.resolve();
         }
+        if (value === password) {
+          return Promise.resolve();
+        }
+        return Promise.reject('Пароли не совпадают');
+      }
     },
   ];
 

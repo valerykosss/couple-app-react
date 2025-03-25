@@ -22,7 +22,14 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const handleGoogleLogin = () => handleGoogleAuth(false, dispatch, navigate, props.onClose);
+  const handleGoogleLogin = () => 
+    handleGoogleAuth({
+      isRegister: false, 
+      dispatch, 
+      navigate, 
+      onClose: props.onClose, 
+      showWelcomeMessage: true 
+    });
 
   const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
     const { email, password } = values;
@@ -34,11 +41,22 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
 
       const token = await user.getIdToken();
 
-      message.success(`Добро пожаловать, ${user.displayName}!`);
+      const userData = {
+        token,
+        googleAccessToken: null,
+        email: user.email || "",
+        id: user.uid,
+      };
+      localStorage.setItem("authUser", JSON.stringify(userData));
+      // localStorage.setItem("googleAccessToken", "null"); 
+
+      message.success(`Добро пожаловать, ${user.displayName || 'пользователь'}!`);
+
       dispatch(action.authSlice.initUser({
         email: user.email,
         id: user.uid,
         token: token, 
+        calendarToken: null
       }));
       props.onClose();
       
