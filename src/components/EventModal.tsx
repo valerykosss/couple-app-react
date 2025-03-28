@@ -53,11 +53,13 @@ export function EventModal({ event, visible, onCancel, onDelete, onUpdate }: Eve
   const handleDelete = async () => {
     try {
       setLoading(true);
-      if (event) {
+      if (event?.id) {
         await onDelete(event.id);
+      } else {
+        console.error("Ошибка: отсутствует ID у события, удаление невозможно.");
       }
     } catch (error) {
-      console.error('Ошибка при удалении события:', error);
+      console.error("Ошибка при удалении события:", error);
     } finally {
       setLoading(false);
     }

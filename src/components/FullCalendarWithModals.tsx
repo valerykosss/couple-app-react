@@ -7,32 +7,47 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { EventClickArg, EventChangeArg, DateSelectArg } from '@fullcalendar/core';
 import { EventModal } from './EventModal';
 import { CalendarEventType } from '../types/calendar';
-import { createGoogleCalendarEvent, deleteGoogleCalendarEvent, fetchGoogleCalendarEvents, updateGoogleCalendarEvent } from '../api/googleCalendar/сrudGoogleCalendarEvents';
+import { createGoogleCalendarEvent, deleteGoogleCalendarEvent, fetchGoogleCalendarEvents, updateGoogleCalendarEvent } from '../api/googleCalendar/googleCalendar';
 
 type FullCalendarWithModalsProps = {
   token: string | null;
-}
+  syncLocalEvent: (event: any) => Promise<void>;
+  handleGoogleCalendarAfterLocalEvents: () => Promise<void>;
+  loadEvents: () => Promise<CalendarEventType[]>;
+};
 
-export function FullCalendarWithModals({ token }: FullCalendarWithModalsProps) {
+export function FullCalendarWithModals({
+  token,
+  loadEvents,
+  syncLocalEvent,
+  handleGoogleCalendarAfterLocalEvents
+}: FullCalendarWithModalsProps) {
   const [events, setEvents] = useState<CalendarEventType[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const user = localStorage.getItem("authUser");
+  const userString = localStorage.getItem("authUser"); 
+  const user = userString ? JSON.parse(userString) : null; // Теперь user - объект или null
+  
+  // if (!user || !user.id) {
+  //   console.error("Ошибка: user отсутствует или не содержит id");
+  // } else {
+  //   console.log("User ID:", user.id);
+  // }
 
-  const loadEvents = useCallback(async () => {
-    if (!token) return;
+  // const loadEvents = useCallback(async () => {
+  //   if (!token) return;
     
-    try {
-      setLoading(true);
-      const fetchedEvents = await fetchGoogleCalendarEvents(token);
-      setEvents(fetchedEvents);
-    } catch (error) {
-      message.error('Не удалось загрузить события');
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+  //   try {
+  //     setLoading(true);
+  //     const fetchedEvents = await fetchGoogleCalendarEvents(token);
+  //     setEvents(fetchedEvents);
+  //   } catch (error) {
+  //     message.error('Не удалось загрузить события');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, [token]);
 
   useEffect(() => {
     loadEvents();
@@ -87,6 +102,7 @@ export function FullCalendarWithModals({ token }: FullCalendarWithModalsProps) {
         if (user) {
           try {
             await createGoogleCalendarEvent(token, {
+              
               userId: user.id,
               summary: title,
               start: { 

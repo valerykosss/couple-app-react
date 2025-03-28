@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
 import { AppDispatch } from '../store';
 import handleGoogleAuth from '../api/googleAuth/googleAuth';
-import { createUser } from '../firebase/firebase';
+import { createUser } from '../api/firebase/firebase';
 
 type AuthFormRegisterProps = {
   toggleForm: () => void;

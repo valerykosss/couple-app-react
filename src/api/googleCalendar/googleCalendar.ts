@@ -3,7 +3,6 @@ import { CalendarEventType } from "../../types/calendar";
 
 const BASE_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 
-
 async function doFetch<T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', token: string, body?: any) {
   try {
     const response = await fetch(path, {
@@ -29,8 +28,26 @@ async function doFetch<T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE
   }
 }
 
+// export async function createGoogleCalendarEvent(token: string, event: CalendarEventType) {
+//   const data = await doFetch<CalendarEventType>(BASE_URL, 'POST', token, event);
+//   message.success('Событие успешно создано');
+//   return {
+//     id: data.id,
+//     summary: data.summary,
+//     start: data.start,
+//     end: data.end,
+//     status: data.status,
+//     htmlLink: data.htmlLink,
+//   };
+// }
+
 export async function createGoogleCalendarEvent(token: string, event: CalendarEventType) {
   const data = await doFetch<CalendarEventType>(BASE_URL, 'POST', token, event);
+  
+  if (!data || !data.id) {
+    throw new Error("Ошибка: API не вернуло корректный ID события");
+  }
+
   message.success('Событие успешно создано');
   return {
     id: data.id,
@@ -86,5 +103,16 @@ export async function fetchGoogleCalendarEvents(token: string | null) {
     message.error("Ошибка загрузки событий");
     console.error("Ошибка при загрузке событий:", error);
     return [];
+  }
+}
+
+export async function getGoogleCalendarEventById(token: string, eventId: string) {
+  try {
+    const event = await doFetch<CalendarEventType>(`${BASE_URL}/${eventId}`, 'GET', token);
+    return event;
+  } catch (error) {
+    console.error("Ошибка при получении события из Google Calendar:", error);
+    message.error("Не удалось загрузить событие из Google Calendar");
+    return null;
   }
 }

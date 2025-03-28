@@ -13,7 +13,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { v4 } from "uuid";
-import { CalendarEventType } from "../types/calendar";
+import { CalendarEventType } from "../../types/calendar";
+import { message } from "antd";
 
 
 const firebaseConfig = {
@@ -101,14 +102,27 @@ export async function deleteUser(userId: string) {
 }
 
 //EVENT
-export async function getEventsByUser(userId: string) {
-  const eventsSnapshot = await getDocs(dataPoints.events);
-  return eventsSnapshot.docs.map(doc => doc.data()).filter(event => event.userId === userId);
-}
+// async function getAllEvents() {
+//   const eventsSnapshot = await getDocs(dataPoints.events);
+//   return eventsSnapshot.docs.map(doc => doc.data());
+// }
 
 export async function getEventById(eventId: string) {
   const eventSnapshot = await getDoc(dataPoints.eventDoc(eventId));
   return eventSnapshot.data();
+}
+
+export async function getEventFromFirebaseByGoogleId(googleEventId: string) {
+  const eventsSnapshot = await getDocs(dataPoints.events);
+  return eventsSnapshot.docs
+    .map(doc => doc.data())
+    .find(event => event.googleEventId === googleEventId);
+}
+
+
+export async function getEventsByUser(userId: string) {
+  const eventsSnapshot = await getDocs(dataPoints.events);
+  return eventsSnapshot.docs.map(doc => doc.data()).filter(event => event.userId === userId);
 }
 
 export async function createEvent(event: CalendarEventType) {

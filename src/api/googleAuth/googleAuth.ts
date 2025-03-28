@@ -1,7 +1,7 @@
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { message } from "antd";
 import { action, AppDispatch } from "../../store";
-import { createUser } from "../../firebase/firebase";
+import { createUser } from "../firebase/firebase";
 
 type GoogleAuthParams = {
   isRegister: boolean;

@@ -1,6 +1,7 @@
 export type CalendarEventType = {
   userId: string;
-  id: string;
+  googleEventId?: string;
+  id?: string;
   summary: string;
   start: {
     dateTime: string;
