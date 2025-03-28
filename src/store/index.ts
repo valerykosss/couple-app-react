@@ -1,18 +1,21 @@
 import { TypedUseSelectorHook, useSelector } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import authSlice from "./authSlice";
+import authSlice from "./slices/authSlice";
 import '../firebase/firebase';
-import uiSlice from "./uiSlice";
+import uiSlice from "./slices/uiSlice";
+import swiperSlice from "./slices/swiperSlice";
 
 export const action = {
     authSlice: authSlice.actions,
     uiSlice: uiSlice.actions,
+    swiperSlice: swiperSlice.actions
 }
 
 const store = configureStore({
     reducer: {
         authSlice: authSlice.reducer,
-        uiSlice: uiSlice.reducer
+        uiSlice: uiSlice.reducer,
+        swiperSlice: swiperSlice.reducer
     }
 });
 

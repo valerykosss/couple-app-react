@@ -3,11 +3,11 @@ import { Form, Input, Button, FormProps, message } from 'antd';
 import { GoogleOutlined } from '@ant-design/icons';
 import { RuleObject } from 'antd/es/form';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, getFirestore } from "firebase/firestore";
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
 import { AppDispatch } from '../store';
-import handleGoogleAuth from '../utils/googleAuth';
+import handleGoogleAuth from '../api/googleAuth/googleAuth';
+import { createUser } from '../firebase/firebase';
 
 type AuthFormRegisterProps = {
   toggleForm: () => void;
@@ -28,7 +28,7 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
 
   const handleGoogleRegister = () =>
     handleGoogleAuth({
-      isRegister: false,
+      isRegister: true,
       dispatch,
       navigate,
       onClose: props.onClose,
@@ -45,11 +45,10 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
 
       await updateProfile(user, { displayName: username });
 
-      const db = getFirestore();
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
+      await createUser({
+        id: user.uid,
+        email: user.email!,
         username: username,
-        partnerId: null,
         createdAt: new Date().toISOString(),
       });
 

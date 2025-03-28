@@ -1,7 +1,7 @@
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, setDoc, getFirestore } from "firebase/firestore"; 
 import { message } from "antd";
-import { action, AppDispatch } from "../store";
+import { action, AppDispatch } from "../../store";
+import { createUser } from "../../firebase/firebase";
 
 type GoogleAuthParams = {
   isRegister: boolean;
@@ -45,17 +45,16 @@ export default async function handleGoogleAuth({
     localStorage.setItem("authUser", JSON.stringify(updatedUserData));
 
     if (isRegister) {
-      const db = getFirestore();
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
+      try {
+        await createUser({
+          id: user.uid,
           email: user.email || "",
           username: user.displayName || "Пользователь",
-          partnerId: null,
           createdAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+        });
+      } catch (error) {
+        console.error("Ошибка при создании пользователя:", error);
+      }
     }
 
     if (showWelcomeMessage) {

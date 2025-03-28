@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { action, AppDispatch } from '../store';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from 'react-router';
-import handleGoogleAuth from '../utils/googleAuth';
+import handleGoogleAuth from '../api/googleAuth/googleAuth';
 
 type AuthFormLoginProps = {
   toggleForm: () => void;

@@ -4,11 +4,11 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import LandingPage from "./pages/LandingPage";
 import NotFoundPage from './pages/NotFoundPage';
 import GeneralPage from './pages/GeneralPage';
-import TimetablePage from './pages/TimetablePage';
 import AppLayout from './components/layouts/AppLayout';
 import useAuthCheck from './hooks/useAuthCheck';
 import ProtectedRoute from './components/ProtectedRoute';
-import CalendarPage from './pages/CalendarPage';
+import { CalendarPage } from './pages/CalendarPage';
+import { TinderPage } from './pages/TinderPage';
 
 function App() {
   const loading = useAuthCheck();
@@ -23,7 +23,7 @@ function App() {
         <Route element={<ProtectedRoute loading={loading} />}>
           <Route path="/app" element={<AppLayout />}>
             <Route path="" element={<GeneralPage />} />
-            <Route path="timetable" element={<TimetablePage />} />
+            <Route path="tinder" element={<TinderPage />} />
             <Route path="calendar" element={<CalendarPage />} />
           </Route>
         </Route>

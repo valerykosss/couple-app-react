@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Layout, Menu } from "antd";
-import { HomeOutlined, UserOutlined, CalendarOutlined } from "@ant-design/icons";
+import { HomeOutlined, CalendarOutlined, HeartOutlined } from "@ant-design/icons";
 import { Link, useLocation, Outlet } from "react-router";
 import CommonHeader from "./CommonHeader";
 
@@ -25,8 +25,8 @@ const AppLayout = () => {
     },
     {
       key: "timetable",
-      icon: <UserOutlined />,
-      label: <Link to="/app/timetable">Расписание</Link>,
+      icon: <HeartOutlined />,
+      label: <Link to="/app/tinder">Подобрать свидание</Link>,
       path: "/app/timetable"
     },
     {
