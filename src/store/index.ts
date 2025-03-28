@@ -4,18 +4,21 @@ import authSlice from "./slices/authSlice";
 import '../api/firebase/firebase';
 import uiSlice from "./slices/uiSlice";
 import swiperSlice from "./slices/swiperSlice";
+import calendarSlice from "./slices/calendarSlice";
 
 export const action = {
     authSlice: authSlice.actions,
     uiSlice: uiSlice.actions,
-    swiperSlice: swiperSlice.actions
+    swiperSlice: swiperSlice.actions,
+    calendarSlice: calendarSlice.actions
 }
 
 const store = configureStore({
     reducer: {
         authSlice: authSlice.reducer,
         uiSlice: uiSlice.reducer,
-        swiperSlice: swiperSlice.reducer
+        swiperSlice: swiperSlice.reducer,
+        calendarSlice: calendarSlice.reducer
     }
 });
 

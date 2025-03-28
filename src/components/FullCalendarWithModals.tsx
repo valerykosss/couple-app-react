@@ -1,152 +1,67 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Modal, Button, message, Input } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { EventClickArg, EventChangeArg, DateSelectArg } from '@fullcalendar/core';
 import { EventModal } from './EventModal';
-import { CalendarEventType } from '../types/calendar';
-import { createGoogleCalendarEvent, deleteGoogleCalendarEvent, fetchGoogleCalendarEvents, updateGoogleCalendarEvent } from '../api/googleCalendar/googleCalendar';
+import { transformEvents } from '../utils/eventTransformForFullCalendar';
+import { fetchGoogleCalendarEvents } from '../api/googleCalendar/googleCalendar';
+import { useDispatch } from 'react-redux';
+import { action, useTypedSelector } from '../store';
 
-type FullCalendarWithModalsProps = {
-  token: string | null;
-  syncLocalEvent: (event: any) => Promise<void>;
-  handleGoogleCalendarAfterLocalEvents: () => Promise<void>;
-  loadEvents: () => Promise<CalendarEventType[]>;
-};
+export function FullCalendarWithModals() {
+  const dispatch = useDispatch();
+  const {
+    events,
+    selectedEvent,
+    isLoading,
+    calendarToken
+  } = useTypedSelector(state => state.calendarSlice);
 
-export function FullCalendarWithModals({
-  token,
-  loadEvents,
-  syncLocalEvent,
-  handleGoogleCalendarAfterLocalEvents
-}: FullCalendarWithModalsProps) {
-  const [events, setEvents] = useState<CalendarEventType[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEventType | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const userString = localStorage.getItem("authUser"); 
-  const user = userString ? JSON.parse(userString) : null; // Теперь user - объект или null
-  
-  // if (!user || !user.id) {
-  //   console.error("Ошибка: user отсутствует или не содержит id");
-  // } else {
-  //   console.log("User ID:", user.id);
-  // }
 
-  // const loadEvents = useCallback(async () => {
-  //   if (!token) return;
-    
-  //   try {
-  //     setLoading(true);
-  //     const fetchedEvents = await fetchGoogleCalendarEvents(token);
-  //     setEvents(fetchedEvents);
-  //   } catch (error) {
-  //     message.error('Не удалось загрузить события');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, [token]);
-
+  // Получаем токен при монтировании
   useEffect(() => {
-    loadEvents();
-  }, [loadEvents]);
-
-  const handleEventClick = useCallback((clickInfo: EventClickArg) => {
-    const event = events.find(e => e.id === clickInfo.event.id);
-    if (event) {
-      setSelectedEvent(event);
-      setModalVisible(true);
+    const authUser = localStorage.getItem("authUser");
+    if (authUser) {
+      const { calendarToken } = JSON.parse(authUser);
+      dispatch(action.calendarSlice.setCalendarToken(calendarToken));
     }
-  }, [events]);
+  }, [dispatch]);
 
-  const handleEventChange = useCallback(async (changeInfo: EventChangeArg) => {
-    try {
-      const event = events.find(e => e.id === changeInfo.event.id);
-      if (event && token) {
-        await updateGoogleCalendarEvent(token, {
-          ...event,
-          start: { 
-            dateTime: changeInfo.event.startStr, 
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
-          },
-          end: { 
-            dateTime: changeInfo.event.endStr, 
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
-          }
-        });
-        await loadEvents();
+  // Загрузка событий
+  useEffect(() => {
+    const loadEvents = async () => {
+      if (!calendarToken) return;
+      
+      dispatch(action.calendarSlice.setLoading(true));
+      try {
+        const googleEvents = await fetchGoogleCalendarEvents(calendarToken);
+        dispatch(action.calendarSlice.setEvents(googleEvents));
+      } catch (error) {
+        console.error('Ошибка загрузки событий:', error);
+      } finally {
+        dispatch(action.calendarSlice.setLoading(false));
       }
-    } catch (error) {
-      message.error('Не удалось обновить событие');
-      await loadEvents();
-    }
-  }, [events, token, loadEvents]);
+    };
 
-  const handleSelect = useCallback(async (selectInfo: DateSelectArg) => {
-    Modal.confirm({
-      title: 'Создать новое событие',
-      content: (
-        <Input 
-          placeholder="Введите название события" 
-          id="event-title-input"
-        />
-      ),
-      onOk: async () => {
-        const input = document.getElementById('event-title-input') as HTMLInputElement;
-        const title = input?.value.trim();
-        
-        if (!title || !token) return;
+    loadEvents();
+  }, [calendarToken, dispatch]);
 
-        if (user) {
-          try {
-            await createGoogleCalendarEvent(token, {
-              
-              userId: user.id,
-              summary: title,
-              start: { 
-                dateTime: selectInfo.startStr,
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
-              },
-              end: { 
-                dateTime: selectInfo.endStr,
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
-              },
-              status: 'confirmed'
-            });
-            await loadEvents();
-          } catch (error) {
-            message.error('Не удалось создать событие');
-          }
-        }
-      },
-    });
-  }, [token, loadEvents]);
+  const handleEventClick = useCallback((clickInfo: { event: any }) => {
+    const clickedEvent = events.find(e => e.id === clickInfo.event.id);
+    dispatch(action.calendarSlice.setSelectedEvent(clickedEvent || null));
+    setModalVisible(true);
+  }, [events, dispatch]);
 
-  const handleDeleteEvent = useCallback(async (eventId: string) => {
-    if (!token) return;
-    
-    try {
-      await deleteGoogleCalendarEvent(token, eventId);
-      setModalVisible(false);
-      await loadEvents();
-    } catch (error) {
-      message.error('Не удалось удалить событие');
-    }
-  }, [token, loadEvents]);
+  const handleLoadingChange = useCallback((loading: boolean) => {
+    dispatch(action.calendarSlice.setLoading(loading));
+  }, [dispatch]);
 
-  const handleUpdateEvent = useCallback(async (updatedEvent: CalendarEventType) => {
-    if (!token) return;
-    
-    try {
-      await updateGoogleCalendarEvent(token, updatedEvent);
-      setModalVisible(false);
-      await loadEvents();
-    } catch (error) {
-      message.error('Не удалось обновить событие');
-    }
-  }, [token, loadEvents]);
+  const handleDeleteEvent = useCallback((eventId: string) => {
+    dispatch(action.calendarSlice.removeEvent(eventId));
+    setModalVisible(false);
+  }, [dispatch]);
 
   return (
     <>
@@ -160,30 +75,38 @@ export function FullCalendarWithModals({
         }}
         selectable={true}
         editable={true}
-        events={events.map(event => ({
-          id: event.id,
-          title: event.summary,
-          start: event.start.dateTime,
-          end: event.end.dateTime,
-          backgroundColor: event.status === 'confirmed' ? '#1890ff' : '#faad14',
-          borderColor: event.status === 'confirmed' ? '#1890ff' : '#faad14',
-        }))}
+        events={transformEvents(events)}
         eventClick={handleEventClick}
-        eventChange={handleEventChange}
-        select={handleSelect}
-        loading={(isLoading) => {
-            setLoading(isLoading);
-          }}
         locale="ru"
-        height="auto"
+        loading={handleLoadingChange}
       />
-      
+
+      {isLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{ color: 'white', fontSize: '1.5rem' }}>Загрузка...</div>
+        </div>
+      )}
+
       <EventModal
         event={selectedEvent}
         visible={modalVisible}
         onCancel={() => setModalVisible(false)}
-        onDelete={handleDeleteEvent}
-        onUpdate={handleUpdateEvent}
+        onDelete={selectedEvent ? () => {
+          if (selectedEvent.id) {
+            handleDeleteEvent(selectedEvent.id);
+          }
+        } : undefined}
       />
     </>
   );

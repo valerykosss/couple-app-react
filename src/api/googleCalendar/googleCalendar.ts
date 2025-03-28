@@ -28,18 +28,19 @@ async function doFetch<T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE
   }
 }
 
-// export async function createGoogleCalendarEvent(token: string, event: CalendarEventType) {
-//   const data = await doFetch<CalendarEventType>(BASE_URL, 'POST', token, event);
-//   message.success('Событие успешно создано');
-//   return {
-//     id: data.id,
-//     summary: data.summary,
-//     start: data.start,
-//     end: data.end,
-//     status: data.status,
-//     htmlLink: data.htmlLink,
-//   };
-// }
+export async function fetchGoogleCalendarEvents(token: string) {
+  const now = new Date();
+  const endOfYear = new Date(now.getFullYear(), 11, 31);
+  const path = `${BASE_URL}?timeMin=${now.toISOString()}&timeMax=${endOfYear.toISOString()}&singleEvents=true&orderBy=startTime`;
+  
+  const data = await doFetch<{ items: CalendarEventType[] }>(
+    path,
+    'GET',
+    token
+  );
+  
+  return data.items || [];
+}
 
 export async function createGoogleCalendarEvent(token: string, event: CalendarEventType) {
   const data = await doFetch<CalendarEventType>(BASE_URL, 'POST', token, event);
@@ -61,11 +62,16 @@ export async function createGoogleCalendarEvent(token: string, event: CalendarEv
 
 // Функция для обновления события
 export async function updateGoogleCalendarEvent(token: string, event: CalendarEventType) {
-  const data = await doFetch<CalendarEventType>(`${BASE_URL}/${event.id}`, 'PUT', token, {
-    summary: event.summary,
-    start: event.start,
-    end: event.end,
-  });
+  const data = await doFetch<CalendarEventType>(
+    `${BASE_URL}/${event.id}`, 
+    'PUT', 
+    token, 
+    {
+      summary: event.summary,
+      start: event.start,
+      end: event.end,
+    }
+  );
   message.success('Событие успешно обновлено');
   return {
     id: data.id,
@@ -80,39 +86,4 @@ export async function updateGoogleCalendarEvent(token: string, event: CalendarEv
 export async function deleteGoogleCalendarEvent(token: string, eventId: string) {
   await doFetch<void>(`${BASE_URL}/${eventId}`, 'DELETE', token);
   message.success('Событие успешно удалено');
-}
-
-export async function fetchGoogleCalendarEvents(token: string | null) {
-  if (!token) {
-    console.warn("Токен не предоставлен");
-    return [];
-  }
-
-  try {
-    const now = new Date();
-    const endOfYear = new Date(now.getFullYear(), 11, 31);
-
-    const data = await doFetch<{ items: CalendarEventType[] }>(
-      `${BASE_URL}?timeMin=${now.toISOString()}&timeMax=${endOfYear.toISOString()}&singleEvents=true&orderBy=startTime`,
-      'GET',
-      token
-    );
-
-    return data.items || [];
-  } catch (error) {
-    message.error("Ошибка загрузки событий");
-    console.error("Ошибка при загрузке событий:", error);
-    return [];
-  }
-}
-
-export async function getGoogleCalendarEventById(token: string, eventId: string) {
-  try {
-    const event = await doFetch<CalendarEventType>(`${BASE_URL}/${eventId}`, 'GET', token);
-    return event;
-  } catch (error) {
-    console.error("Ошибка при получении события из Google Calendar:", error);
-    message.error("Не удалось загрузить событие из Google Calendar");
-    return null;
-  }
 }

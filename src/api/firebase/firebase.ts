@@ -8,9 +8,11 @@ import {
   getDoc,
   getDocs,
   initializeFirestore,
+  query,
   QueryDocumentSnapshot,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { v4 } from "uuid";
 import { CalendarEventType } from "../../types/calendar";
@@ -44,14 +46,12 @@ function converter<T extends DocumentData>(): FirestoreDataConverter<T> {
 //создаёт ссылку на коллекцию в Firestore с применением конвертера
 //получает path – основной путь("users"), pathSegments – дополнительные сегменты (например в users/{userId}/todos)
 function dataPoint<T extends DocumentData>(path: string, ...pathSegments: string[]) {
-  return collection(db, path, ...pathSegments)
-    .withConverter(converter<T>())
+  return collection(db, path, ...pathSegments).withConverter(converter<T>())
 }
 
 //создаёт ссылку на документ (вместо коллекции), path – основной путь (например, "users"). pathSegments – ID документа. 
 function dataPointForOne<T extends DocumentData>(path: string, ...pathSegments: string[]) {
-  return doc(db, path, ...pathSegments)
-    .withConverter(converter<T>())
+  return doc(db, path, ...pathSegments).withConverter(converter<T>())
 }
 
 export type FirebaseUserType = {
@@ -70,6 +70,10 @@ const dataPoints = {
   events: dataPoint<CalendarEventType>('events'),
   //на одно событие
   eventDoc: (eventId: string) => dataPointForOne<CalendarEventType>('events', eventId),
+  eventsByUser: (userId: string) => query(
+    dataPoint<CalendarEventType>('events'),
+    where("userId", "==", userId)
+  )
 }
 
 //USER
@@ -101,12 +105,6 @@ export async function deleteUser(userId: string) {
   await deleteDoc(dataPoints.userDoc(userId));
 }
 
-//EVENT
-// async function getAllEvents() {
-//   const eventsSnapshot = await getDocs(dataPoints.events);
-//   return eventsSnapshot.docs.map(doc => doc.data());
-// }
-
 export async function getEventById(eventId: string) {
   const eventSnapshot = await getDoc(dataPoints.eventDoc(eventId));
   return eventSnapshot.data();
@@ -119,27 +117,17 @@ export async function getEventFromFirebaseByGoogleId(googleEventId: string) {
     .find(event => event.googleEventId === googleEventId);
 }
 
-
 export async function getEventsByUser(userId: string) {
-  const eventsSnapshot = await getDocs(dataPoints.events);
-  return eventsSnapshot.docs.map(doc => doc.data()).filter(event => event.userId === userId);
+  const querySnapshot = await getDocs(dataPoints.eventsByUser(userId));
+  return querySnapshot.docs.map(doc => doc.data());
 }
 
 export async function createEvent(event: CalendarEventType) {
-  let eventId;
-  if (event.htmlLink || event.id) {
-    //событие из гугла
-    eventId = event.id || event.htmlLink?.split('/').pop() || v4();
-  } else {
-    //локальное событие
-    eventId = v4();
-  }
-
+  let eventId = event.id || event.htmlLink?.split('/').pop() || v4();
   await setDoc(dataPoints.eventDoc(eventId), {
     ...event,
     id: eventId,
   });
-
   return eventId;
 }
 

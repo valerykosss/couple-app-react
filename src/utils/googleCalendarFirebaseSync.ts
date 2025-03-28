@@ -1,37 +1,34 @@
-import { message } from "antd";
+import { createEvent, getEventsByUser, updateEvent } from "../api/firebase/firebase";
+import { createGoogleCalendarEvent, fetchGoogleCalendarEvents, updateGoogleCalendarEvent } from "../api/googleCalendar/googleCalendar";
 import { CalendarEventType } from "../types/calendar";
-import { createGoogleCalendarEvent, updateGoogleCalendarEvent } from "../api/googleCalendar/googleCalendar";
-import { createEvent, updateEvent } from "../api/firebase/firebase";
 
+export async function syncEvents(token: string, userId: string) {
+  // Синхронизация в обе стороны
+  const [googleEvents, localEvents] = await Promise.all([
+    fetchGoogleCalendarEvents(token),
+    getEventsByUser(userId)
+  ]);
 
-export async function syncEventWithGoogleAndFirebase(token: string, event: CalendarEventType, isNew: boolean) {
-  try {
-    if (isNew) {
-      //событие новое - создаем его в Google Calendar
-      const googleEvent = await createGoogleCalendarEvent(token, event);
+  // Синхронизация Google → Firebase
+  await Promise.all(googleEvents.map(event => 
+    createEvent(event).catch(() => updateEvent(event.id!, event))
+  ));
 
-      //id события из Google Calendar в локальное событие
-      event.googleEventId = googleEvent.id;
+  // Синхронизация Firebase → Google
+  await Promise.all(localEvents.map(event => 
+    event.id ? updateGoogleCalendarEvent(token, event) : createGoogleCalendarEvent(token, event)
+  ));
+}
 
-      await createEvent(event);
-      message.success("Событие успешно синхронизировано с Google Calendar и Firebase");
+export async function createAndSyncEvent(token: string, event: CalendarEventType) {
+  const googleEvent = await createGoogleCalendarEvent(token, event);
+  await createEvent({ ...event, id: googleEvent.id });
+  return googleEvent;
+}
 
-    } else {
-      //событие уже существует - обновляем его в Google Calendar
-      const googleEvent = await updateGoogleCalendarEvent(token, event);
-
-      //ID события из Google Calendar в локальное событие
-      event.googleEventId = googleEvent.id;
-
-      if (event.id) {
-        await updateEvent(event.id, event);
-      } else {
-        console.error("Ошибка: у обновляемого события отсутствует ID.");
-      }
-      message.success("Событие успешно обновлено в Google Calendar и Firebase");
-    }
-  } catch (error) {
-    console.error("Ошибка синхронизации с Google Calendar и Firebase:", error);
-    message.error("Не удалось синхронизировать событие с Google Calendar и Firebase");
-  }
+export async function updateAndSyncEvent(token: string, event: CalendarEventType) {
+  await Promise.all([
+    updateGoogleCalendarEvent(token, event),
+    event.id ? updateEvent(event.id, event) : Promise.resolve()
+  ]);
 }
