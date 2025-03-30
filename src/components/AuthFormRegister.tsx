@@ -6,7 +6,7 @@ import { getAuth, createUserWithEmailAndPassword, updateProfile } from "firebase
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
 import { AppDispatch } from '../store';
-import handleGoogleAuth from '../api/googleAuth/googleAuth';
+import handleGoogleAuth from '../utils/googleAuth';
 import { createUser } from '../api/firebase/firebase';
 
 type AuthFormRegisterProps = {

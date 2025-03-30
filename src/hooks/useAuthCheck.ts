@@ -8,29 +8,17 @@ function useAuthCheck() {
 
   useEffect(() => {
     const userData = localStorage.getItem("authUser");
-    // const googleAccessToken = localStorage.getItem("googleAccessToken");
 
     if (userData) {
       const parsedUserData = JSON.parse(userData);
 
-      // let parsedGoogleToken = null;
-      // if (googleAccessToken) {
-      //   try {
-      //     parsedGoogleToken = JSON.parse(googleAccessToken);
-      //   } catch {
-      //     parsedGoogleToken = googleAccessToken;
-      //   }
-      // }
-
-      // const parsedGoogleToken = googleAccessToken && googleAccessToken !== "null" 
-      // ? googleAccessToken 
-      // : null;
-
       dispatch(action.authSlice.initUser({
-        token: parsedUserData.token,
+        firebaseToken: parsedUserData.firebaseToken,
         email: parsedUserData.email,
         id: parsedUserData.id,
-        calendarToken: parsedUserData.calendarToken || null,
+        accessToken: parsedUserData.accessToken || null,
+        refreshToken: parsedUserData.refreshToken || null,
+        tokenExpiresIn: parsedUserData.tokenExpiresIn || null,
       }));
     }
 

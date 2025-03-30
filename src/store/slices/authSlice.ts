@@ -2,16 +2,20 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 type AuthState = {
     email: null | string,
-    token: null | string,
+    firebaseToken: null | string,
     id: null | string,
-    calendarToken: null | string;
+    accessToken: null | string;
+    refreshToken: null | string;
+    tokenExpiresIn: number | null;
 }
 
 const initialState: AuthState = {
     email: null,
-    token: null,
+    firebaseToken: null,
     id: null,
-    calendarToken: null
+    accessToken: null,
+    refreshToken: null,
+    tokenExpiresIn: null
 };
 
 const authSlice = createSlice({
@@ -20,15 +24,19 @@ const authSlice = createSlice({
     reducers: {
       initUser(state, action: PayloadAction<AuthState>) {
         state.email = action.payload.email;
-        state.token = action.payload.token;
+        state.firebaseToken = action.payload.firebaseToken;
         state.id = action.payload.id;
-        state.calendarToken = action.payload.calendarToken
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
+        state.tokenExpiresIn = action.payload.tokenExpiresIn;
       },
       removeUser(state) {
         state.email = null;
-        state.token = null;
+        state.firebaseToken = null;
         state.id = null;
-        state.calendarToken = null;
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.tokenExpiresIn = null;
       }
     },
   })

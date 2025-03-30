@@ -16,7 +16,7 @@ export default function CommonHeader() {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const token = useTypedSelector((state) => state.authSlice.token);
+  const token = useTypedSelector((state) => state.authSlice.firebaseToken);
   const isAuthModalOpen = useTypedSelector((state) => state.uiSlice.isAuthModalOpen);
 
   const toggleForm = () => {
@@ -41,7 +41,6 @@ export default function CommonHeader() {
       await signOut(auth);
   
       localStorage.removeItem("authUser");
-      // localStorage.removeItem("googleAccessToken");
       dispatch(action.authSlice.removeUser());
       dispatch(action.uiSlice.setAuthModalOpen(false));
   

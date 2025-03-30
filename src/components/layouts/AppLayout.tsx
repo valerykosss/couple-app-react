@@ -15,6 +15,7 @@ const siderStyle: React.CSSProperties = {};
 
 const layoutStyle = {};
 
+
 const AppLayout = () => {
   const MENU_ITEMS = [
     {
@@ -46,6 +47,7 @@ const AppLayout = () => {
     );
     setSelectedKey(currentItem?.key || "");
   }, [location.pathname]);
+
 
   return (
     <Layout>

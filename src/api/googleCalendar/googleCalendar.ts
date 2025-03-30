@@ -42,7 +42,7 @@ export async function fetchGoogleCalendarEvents(token: string) {
   return data.items || [];
 }
 
-export async function createGoogleCalendarEvent(token: string, event: CalendarEventType) {
+export async function createGoogleCalendarEvent(token: string, event: Omit<CalendarEventType, "id">) {
   const data = await doFetch<CalendarEventType>(BASE_URL, 'POST', token, event);
   
   if (!data || !data.id) {
@@ -60,7 +60,6 @@ export async function createGoogleCalendarEvent(token: string, event: CalendarEv
   };
 }
 
-// Функция для обновления события
 export async function updateGoogleCalendarEvent(token: string, event: CalendarEventType) {
   const data = await doFetch<CalendarEventType>(
     `${BASE_URL}/${event.id}`, 

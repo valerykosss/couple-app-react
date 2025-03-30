@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { action, AppDispatch } from '../store';
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from 'react-router';
-import handleGoogleAuth from '../api/googleAuth/googleAuth';
+import handleGoogleAuth from '../utils/googleAuth';
 
 type AuthFormLoginProps = {
   toggleForm: () => void;
@@ -39,24 +39,25 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      const token = await user.getIdToken();
+      const firebaseToken = await user.getIdToken();
 
       const userData = {
-        token,
+        firebaseToken,
         googleAccessToken: null,
         email: user.email || "",
         id: user.uid,
       };
       localStorage.setItem("authUser", JSON.stringify(userData));
-      // localStorage.setItem("googleAccessToken", "null"); 
 
       message.success(`Добро пожаловать, ${user.displayName || 'пользователь'}!`);
 
       dispatch(action.authSlice.initUser({
         email: user.email,
         id: user.uid,
-        token: token, 
-        calendarToken: null
+        firebaseToken: firebaseToken, 
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresIn: null
       }));
       props.onClose();
       

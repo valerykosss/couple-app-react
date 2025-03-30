@@ -8,6 +8,7 @@ import {
   getDoc,
   getDocs,
   initializeFirestore,
+  onSnapshot,
   query,
   QueryDocumentSnapshot,
   setDoc,
@@ -17,6 +18,7 @@ import {
 import { v4 } from "uuid";
 import { CalendarEventType } from "../../types/calendar";
 import { message } from "antd";
+import { action, AppDispatch } from "../../store";
 
 
 const firebaseConfig = {
@@ -30,7 +32,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = initializeFirestore(app, {});
+export const db = initializeFirestore(app, {});
 
 //конвертирует данные при получении из Firestore, добавляя id документа, возвращает FirestoreDataConverter<T>, который преобразует данные при чтении/записи
 function converter<T extends DocumentData>(): FirestoreDataConverter<T> {
@@ -59,6 +61,8 @@ export type FirebaseUserType = {
   email: string;
   username: string;
   createdAt: string;
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
 }
 
 const dataPoints = {
@@ -70,10 +74,10 @@ const dataPoints = {
   events: dataPoint<CalendarEventType>('events'),
   //на одно событие
   eventDoc: (eventId: string) => dataPointForOne<CalendarEventType>('events', eventId),
-  eventsByUser: (userId: string) => query(
-    dataPoint<CalendarEventType>('events'),
-    where("userId", "==", userId)
-  )
+  // eventsByUser: (userId: string) => query(
+  //   dataPoint<CalendarEventType>('events'),
+  //   where("userId", "==", userId)
+  // )
 }
 
 //USER
@@ -97,8 +101,19 @@ export async function createUser(user: Partial<FirebaseUserType>) {
   return userId;
 }
 
+async function findUserDocIdByUserId(userId: string) {
+  const usersSnapshot = await getDocs(query(dataPoints.users, where("id", "==", userId)));
+  if (usersSnapshot.empty) return null; 
+  return usersSnapshot.docs[0].id;
+}
+
 export async function updateUser(userId: string, user: Partial<FirebaseUserType>) {
-  await updateDoc(dataPoints.userDoc(userId), user);
+  const userDocId = await findUserDocIdByUserId(userId);
+  if (!userDocId) {
+    console.error(`Пользователь с UID ${userId} не найден в Firestore`);
+    return;
+  }
+  await updateDoc(dataPoints.userDoc(userDocId), user);
 }
 
 export async function deleteUser(userId: string) {
@@ -110,23 +125,12 @@ export async function getEventById(eventId: string) {
   return eventSnapshot.data();
 }
 
-export async function getEventFromFirebaseByGoogleId(googleEventId: string) {
-  const eventsSnapshot = await getDocs(dataPoints.events);
-  return eventsSnapshot.docs
-    .map(doc => doc.data())
-    .find(event => event.googleEventId === googleEventId);
-}
-
-export async function getEventsByUser(userId: string) {
-  const querySnapshot = await getDocs(dataPoints.eventsByUser(userId));
-  return querySnapshot.docs.map(doc => doc.data());
-}
-
 export async function createEvent(event: CalendarEventType) {
   let eventId = event.id || event.htmlLink?.split('/').pop() || v4();
   await setDoc(dataPoints.eventDoc(eventId), {
     ...event,
     id: eventId,
+    userId: event.userId,
   });
   return eventId;
 }
@@ -137,4 +141,15 @@ export async function updateEvent(eventId: string, updatedEvent: Partial<Calenda
 
 export async function deleteEvent(eventId: string) {
   await deleteDoc(dataPoints.eventDoc(eventId));
+}
+
+export function subscribeToUserEvents(userId: string, dispatch: AppDispatch) {
+  const eventsQuery = query(collection(db, "events"), where("userId", "==", userId));
+
+  const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
+    const userEvents = snapshot.docs.map((doc) => doc.data() as CalendarEventType);
+    dispatch(action.calendarSlice.setEvents(userEvents));
+  });
+
+  return unsubscribe;
 }
