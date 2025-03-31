@@ -60,9 +60,11 @@ export type FirebaseUserType = {
   id: string;
   email: string;
   username: string;
-  createdAt: string;
-  googleAccessToken?: string;
-  googleRefreshToken?: string;
+  firebaseToken: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  tokenExpiresIn: string | null;
+
 }
 
 const dataPoints = {

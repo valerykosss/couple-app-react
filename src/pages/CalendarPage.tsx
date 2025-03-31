@@ -1,9 +1,9 @@
-import { Col, message, Row, Typography } from 'antd';
+import { Button, Card, Col, message, Row, Typography } from 'antd';
 import { action, AppDispatch, useTypedSelector } from '../store';
-import handleGoogleAuth from '../utils/googleAuth';
+import handleGoogleAuth, { connectGoogleCalendar } from '../utils/googleAuth';
 import { syncGoogleCalendarToFirestore } from '../utils/syncGoogleCalendarToFirestore';
 import { useDispatch } from 'react-redux';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { subscribeToUserEvents } from '../api/firebase/firebase';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -21,6 +21,7 @@ export function CalendarPage() {
   const dispatch = useDispatch<AppDispatch>();
   const events = useTypedSelector((state) => state.calendarSlice.events);
   const modalState = useTypedSelector((state) => state.eventModalSlice);
+  const [hasGoogleAuth, setHasGoogleAuth] = useState(false);
   
   const authUser = localStorage.getItem('authUser');
   if (!authUser) {
@@ -30,19 +31,24 @@ export function CalendarPage() {
 
   const parsedAuthUser = JSON.parse(authUser);
   const userId = parsedAuthUser.id;
+  const accessToken = parsedAuthUser.accessToken;
+  const refreshToken = parsedAuthUser.refreshToken;
 
   const handleConnectGoogleCalendar = async () => {
-    await handleGoogleAuth({
-      isRegister: false,
-      dispatch,
-      navigate: () => {},
-      onClose: () => {},
-      showWelcomeMessage: false,
-    });
+    try {
+      await connectGoogleCalendar(dispatch);
+      setHasGoogleAuth(true);
+      message.success("Google Calendar успешно подключен");
+    } catch (error) {
+      message.error("Не удалось подключить Google Calendar");
+    }
   };
 
   useEffect(() => {
-    syncGoogleCalendarToFirestore();
+    if (accessToken && refreshToken) {
+      setHasGoogleAuth(true);
+      syncGoogleCalendarToFirestore();
+    }
 
     if (!userId) {
       message.error("Не удалось найти userId.");
@@ -52,7 +58,7 @@ export function CalendarPage() {
     const unsubscribe = subscribeToUserEvents(userId, dispatch);
 
     return () => unsubscribe();
-  }, [dispatch]);
+  }, [dispatch, accessToken, refreshToken, userId]);
 
   
   const handleEventDrop = async (info: EventDropArg) => {
@@ -120,6 +126,26 @@ export function CalendarPage() {
 
   return (
     <div className="calendar-page">
+      {!hasGoogleAuth && (
+        <Row justify="center" style={{ margin: '20px' }}>
+          <Col span={24} md={18} lg={12}>
+            <Card 
+              title="Интеграция с Google Calendar" 
+              actions={[
+                <Button 
+                  type="primary" 
+                  onClick={handleConnectGoogleCalendar}
+                >
+                  Подключить Google Calendar
+                </Button>
+              ]}
+            >
+              <p>Подключите ваш Google Calendar для синхронизации событий</p>
+            </Card>
+          </Col>
+        </Row>
+      )}
+      
       <Row justify="center" style={{ padding: '20px' }}>
       <Col span={24} style={{ padding: '20px' }}>
       <FullCalendar

@@ -38,18 +38,23 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      const username = user.displayName;
 
       const firebaseToken = await user.getIdToken();
 
       const userData = {
-        firebaseToken,
-        googleAccessToken: null,
+        username: username,
         email: user.email || "",
         id: user.uid,
+        firebaseToken,
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresIn: null,
+
       };
       localStorage.setItem("authUser", JSON.stringify(userData));
 
-      message.success(`Добро пожаловать, ${user.displayName || 'пользователь'}!`);
+      message.success(`Добро пожаловать, ${username || 'пользователь'}!`);
 
       dispatch(action.authSlice.initUser({
         email: user.email,

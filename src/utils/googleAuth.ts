@@ -21,7 +21,7 @@ export default async function handleGoogleAuth({
 }: GoogleAuthParams) {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
-  const redirectUri = process.env.REACT_APP_GOOGLE_REDIRECT_URI;
+  //const redirectUri = process.env.REACT_APP_GOOGLE_REDIRECT_URI;
 
   provider.addScope('https://www.googleapis.com/auth/calendar');
   provider.addScope('https://www.googleapis.com/auth/calendar.events');
@@ -36,16 +36,22 @@ export default async function handleGoogleAuth({
     const credential = GoogleAuthProvider.credentialFromResult(result);
     
     const accessToken = credential?.accessToken ?? undefined;
+    const username = user.displayName;
     const firebaseToken = await user.getIdToken();
     const refreshToken = user.refreshToken;
 
+    if (!accessToken) {
+      throw new Error("Не удалось получить access token");
+    }
+
     // Запрос на обновление accessToken для получения expires_in
     // const tokenData = await refreshAccessToken(refreshToken);
-    console.log("Отправляем refresh-токен:", refreshToken); 
+    //console.log("Отправляем refresh-токен:", refreshToken); 
 
     if (accessToken) {
       const updatedUserData = {
-        email: user.email || "",
+        username: username || "Никнейм неопределен",
+        email: user.email!,
         id: user.uid,
         firebaseToken: firebaseToken,
         accessToken: accessToken,
@@ -53,15 +59,12 @@ export default async function handleGoogleAuth({
         tokenExpiresIn: null,
       };
 
-      // Сохраняем информацию в localStorage
       localStorage.setItem("authUser", JSON.stringify(updatedUserData));
 
       if (isRegister) {
         await createUser(updatedUserData);
-        console.log("Создаём пользователя в Firestore:", updatedUserData);
       } else {
         await updateUser(updatedUserData.id, updatedUserData);
-        console.log("Обновляем пользователя:", updatedUserData);
       }
 
       if (showWelcomeMessage) {
@@ -77,3 +80,53 @@ export default async function handleGoogleAuth({
     message.error("Ошибка входа через Google.");
   }
 };
+
+
+export async function connectGoogleCalendar(dispatch: AppDispatch) {
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+  
+  provider.addScope('https://www.googleapis.com/auth/calendar');
+  provider.addScope('https://www.googleapis.com/auth/calendar.events');
+
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    
+    const accessToken = credential?.accessToken;
+    const refreshToken = user.refreshToken;
+
+    if (!accessToken || !refreshToken) {
+      throw new Error("Не удалось получить токены");
+    }
+
+    // Получаем текущие данные пользователя
+    const authUser = localStorage.getItem("authUser");
+    if (!authUser) {
+      throw new Error("Пользователь не авторизован");
+    }
+
+    const currentUserData = JSON.parse(authUser);
+
+    const updatedUserData = {
+      ...currentUserData,
+      accessToken,
+      refreshToken
+    };
+
+    localStorage.setItem("authUser", JSON.stringify(updatedUserData));
+    await updateUser(currentUserData.id, { 
+      accessToken, 
+      refreshToken 
+    });
+
+    dispatch(action.authSlice.updateUserTokens({ accessToken, refreshToken }));
+
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Ошибка подключения Google Calendar:", error);
+    throw error;
+  }
+}

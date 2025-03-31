@@ -40,16 +40,20 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
     const auth = getAuth();
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const result =  await createUserWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+      const firebaseToken = await user.getIdToken();
 
       await updateProfile(user, { displayName: username });
 
       await createUser({
+        username: username,
         id: user.uid,
         email: user.email!,
-        username: username,
-        createdAt: new Date().toISOString(),
+        firebaseToken: firebaseToken,
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresIn: null,
       });
 
       props.toggleForm();
@@ -108,7 +112,6 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
       layout="vertical"
       requiredMark="optional"
       onFinish={onFinish}
-    //   onFinishFailed={onFinishFailed}
     >
       <Form.Item
         label="Имя пользователя"
