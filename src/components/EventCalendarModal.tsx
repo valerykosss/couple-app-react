@@ -1,8 +1,12 @@
-import { Modal, Form, Input, Button, message } from "antd";
+import { Modal, Form, Input, Button, message, DatePicker } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { action, AppDispatch } from "../store";
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 import { handleAddEvent, handleDeleteEvent, handleUpdateEvent } from "../utils/eventFullCalendarHandlers";
+
+dayjs.extend(customParseFormat);
 
 type EventModalData = {
   id?: string; 
@@ -21,16 +25,30 @@ function EventCalendarModal({ visible, eventData, modalType }: EventCalendarModa
   const dispatch = useDispatch<AppDispatch>();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [isDatesValid, setIsDatesValid] = useState(true);
 
   useEffect(() => {
     if (modalType === 'editDelete' && eventData) {
       form.setFieldsValue({
         title: eventData.title,
+        start: dayjs(eventData.start),
+        end: dayjs(eventData.end)
+      });
+    } else if (modalType === 'create' && eventData) {
+      form.setFieldsValue({
+        start: dayjs(eventData.start),
+        end: dayjs(eventData.end)
       });
     } else {
       form.resetFields();
     }
   }, [modalType, eventData, form]);
+
+  const handleDateChange = () => {
+    const start = form.getFieldValue('start');
+    const end = form.getFieldValue('end');
+    setIsDatesValid(!start || !end || start < end);
+  };
 
   const handleCreate = async () => {
     try {
@@ -58,18 +76,29 @@ function EventCalendarModal({ visible, eventData, modalType }: EventCalendarModa
 
   const handleUpdate = async () => {
     try {
-      if (!eventData?.id) { 
+      if (!eventData?.id) {
         throw new Error("Отсутствует ID события");
       }
-
+  
       const values = await form.validateFields();
+
+      const start = values.start ? values.start.toISOString() : eventData?.start;
+      const end = values.end ? values.end.toISOString() : eventData?.end;
+
+      if (!start || !end) {
+        throw new Error("Не указано время события");
+      }
+      
+      const updatedEvent = {
+        id: eventData.id,
+        title: values.title,
+        start: start,
+        end: end
+      };
+  
       await handleUpdateEvent(
         values,
-        {
-          id: eventData.id,
-          start: eventData.start,
-          end: eventData.end
-        },
+        updatedEvent,
         dispatch,
         form,
         setLoading
@@ -133,24 +162,65 @@ function EventCalendarModal({ visible, eventData, modalType }: EventCalendarModa
       }
     >
       <Form form={form} layout="vertical">
-        <Form.Item
-          name="title"
-          label="Название события"
-          rules={[{ required: true, message: "Введите название события!" }]}
-        >
-          <Input placeholder="Введите название события" />
-        </Form.Item>
-        {modalType === 'editDelete' && eventData && (
-          <>
-            <Form.Item label="Начало">
-              <Input value={new Date(eventData.start).toLocaleString()} />
-            </Form.Item>
-            <Form.Item label="Конец">
-              <Input value={new Date(eventData.end).toLocaleString()} />
-            </Form.Item>
-          </>
-        )}
-      </Form>
+  <Form.Item
+    name="title"
+    label="Название события"
+    rules={[{ required: true, message: "Введите название события!" }]}
+  >
+    <Input placeholder="Введите название события" />
+  </Form.Item>
+  {modalType === 'editDelete' && eventData && (
+    <>
+      <Form.Item
+        name="start"
+        label="Начало события"
+        rules={[
+          { required: true, message: "Укажите время начала" },
+          ({ getFieldValue }) => ({
+            validator(_, value) {
+              if (!value || !getFieldValue('end') || value < getFieldValue('end')) {
+                return Promise.resolve();
+              }
+              return Promise.reject('Время начала должно быть раньше окончания');
+            },
+          }),
+        ]}
+      >
+        <DatePicker
+          showTime
+          format="YYYY-MM-DD HH:mm"
+          placeholder="Выберите время начала"
+          style={{ width: '100%' }}
+          disabledDate={(current) => current && current < dayjs().startOf('day')}
+          onChange={handleDateChange}
+        />
+      </Form.Item>
+      <Form.Item
+        name="end"
+        label="Конец события"
+        rules={[
+          { required: true, message: "Укажите время окончания" },
+          ({ getFieldValue }) => ({
+            validator(_, value) {
+              if (!value || !getFieldValue('start') || value > getFieldValue('start')) {
+                return Promise.resolve();
+              }
+              return Promise.reject('Время окончания должно быть позже начала');
+            },
+          }),
+        ]}
+      >
+        <DatePicker
+          showTime
+          format="YYYY-MM-DD HH:mm"
+          placeholder="Выберите время окончания"
+          style={{ width: '100%' }}
+          onChange={handleDateChange}
+        />
+      </Form.Item>
+    </>
+  )}
+</Form>
     </Modal>
   );
 };
