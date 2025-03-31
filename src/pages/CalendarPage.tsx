@@ -3,15 +3,13 @@ import { action, AppDispatch, useTypedSelector } from '../store';
 import handleGoogleAuth from '../utils/googleAuth';
 import { syncGoogleCalendarToFirestore } from '../utils/syncGoogleCalendarToFirestore';
 import { useDispatch } from 'react-redux';
-import { useEffect, useState } from 'react';
-import { createEvent, db, subscribeToUserEvents } from '../api/firebase/firebase';
+import { useEffect } from 'react';
+import { subscribeToUserEvents } from '../api/firebase/firebase';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import ruLocale from '@fullcalendar/core/locales/ru';
-import { CalendarEventType } from '../types/calendar';
-import { collection, initializeFirestore, onSnapshot, query, where } from 'firebase/firestore';
 import EventCalendarModal from '../components/EventCalendarModal';
 
 const { Title } = Typography;
@@ -55,6 +53,7 @@ export function CalendarPage() {
 
 
   const mappedEvents = events.map(event => ({
+    id: event.id,
     title: event.summary, 
     start: event.start.dateTime,
     end: event.end?.dateTime || event.start.dateTime,
@@ -82,29 +81,51 @@ export function CalendarPage() {
           dayGridMonth: {
             buttonText: 'Месяц', 
             titleFormat: { year: 'numeric', month: 'long' },
+            selectable: false,
           },
           timeGridWeek: {
             buttonText: 'Неделя',
+            selectable: true,
           },
         }}
         eventClick={(info) => {
-          console.log('Event clicked:', info.event); 
+          if (!info.event.id) {
+            console.error("Event missing ID:", info.event);
+            return;
+          }
+          dispatch(
+            action.eventModalSlice.showEditDeleteModal({
+              id: info.event.id,
+              title: info.event.title,
+              start: info.event.startStr,
+              end: info.event.endStr,
+            })
+          );
         }}
         contentHeight="500px"
         selectable={true}
         select={(info) => {
-          dispatch(
-            action.eventModalSlice.showCreateModal({
-              start: info.startStr,
-              end: info.endStr,
-            })
-          );
+          const calendarApi = info.view.calendar;
+          const currentView = calendarApi.view.type;
+          
+          if (currentView === 'timeGridWeek') {
+            dispatch(
+              action.eventModalSlice.showCreateModal({
+                start: info.startStr,
+                end: info.endStr,
+              })
+            );
+          }
         }}
       />
     </Col>
   </Row>
 
-      <EventCalendarModal visible={modalState.isVisible} eventData={modalState.eventData} />
+  <EventCalendarModal 
+    visible={modalState.isVisible} 
+    eventData={modalState.eventData} 
+    modalType={modalState.modalType}
+  />
     </div>
   );
 }

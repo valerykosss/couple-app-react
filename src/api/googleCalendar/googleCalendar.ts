@@ -19,6 +19,10 @@ async function doFetch<T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE
       throw new Error(errorData.error?.message || 'Ошибка при выполнении запроса');
     }
 
+    if (method === 'DELETE') {
+      return null as unknown as T;
+    }
+
     const data = await response.json();
     return data as T;
   } catch (error) {
@@ -83,6 +87,13 @@ export async function updateGoogleCalendarEvent(token: string, event: CalendarEv
 }
 
 export async function deleteGoogleCalendarEvent(token: string, eventId: string) {
-  await doFetch<void>(`${BASE_URL}/${eventId}`, 'DELETE', token);
-  message.success('Событие успешно удалено');
+  try {
+    await doFetch<void>(`${BASE_URL}/${eventId}`, 'DELETE', token);
+    message.success('Событие успешно удалено из Google Calendar');
+    return true;
+  } catch (error) {
+    console.error('Ошибка удаления из Google Calendar:', error);
+    message.error('Не удалось удалить событие из Google Calendar');
+    throw error;
+  }
 }

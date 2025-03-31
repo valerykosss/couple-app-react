@@ -74,10 +74,6 @@ const dataPoints = {
   events: dataPoint<CalendarEventType>('events'),
   //на одно событие
   eventDoc: (eventId: string) => dataPointForOne<CalendarEventType>('events', eventId),
-  // eventsByUser: (userId: string) => query(
-  //   dataPoint<CalendarEventType>('events'),
-  //   where("userId", "==", userId)
-  // )
 }
 
 //USER
@@ -140,7 +136,15 @@ export async function updateEvent(eventId: string, updatedEvent: Partial<Calenda
 }
 
 export async function deleteEvent(eventId: string) {
-  await deleteDoc(dataPoints.eventDoc(eventId));
+  // await deleteDoc(dataPoints.eventDoc(eventId));
+  const docRef = dataPoints.eventDoc(eventId);
+  const docSnap = await getDoc(docRef);
+  
+  if (!docSnap.exists()) {
+    throw new Error(`Событие с ID ${eventId} не найдено в Firestore`);
+  }
+  
+  await deleteDoc(docRef);
 }
 
 export function subscribeToUserEvents(userId: string, dispatch: AppDispatch) {
