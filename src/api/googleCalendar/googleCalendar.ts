@@ -64,7 +64,7 @@ export async function createGoogleCalendarEvent(token: string, event: Omit<Calen
   };
 }
 
-export async function updateGoogleCalendarEvent(token: string, event: CalendarEventType) {
+export async function updateGoogleCalendarEvent(token: string, event: Partial<CalendarEventType> & { id: string }) {
   const data = await doFetch<CalendarEventType>(
     `${BASE_URL}/${event.id}`, 
     'PUT', 

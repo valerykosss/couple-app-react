@@ -16,7 +16,6 @@ export function syncGoogleCalendarToFirestore() {
   return (async () => {
     // Извлекаем данные пользователя из localStorage
     const authUser = localStorage.getItem('authUser');
-    
     if (!authUser) {
       message.error("Данные пользователя не найдены в localStorage.");
       return;
@@ -40,7 +39,8 @@ export function syncGoogleCalendarToFirestore() {
       // Преобразуем их в формат, который подойдёт для Firestore
       const eventsToSave = googleEvents.map(event => ({
         ...event,
-        userId: userId,  // Добавляем userId, чтобы понять, чье это событие
+        userIds: [userId],
+        createdBy: userId
       }));
 
       // Сохраняем события в Firestore
@@ -56,54 +56,6 @@ export function syncGoogleCalendarToFirestore() {
   })();
 }
 
-// export async function syncGoogleCalendarToFirestore() {
-//   try {
-//     const authUser = JSON.parse(localStorage.getItem('authUser') || '{}');
-    
-//     if (!authUser.accessToken || !authUser.id) {
-//       message.error("Необходимые данные для авторизации не найдены");
-//       return;
-//     }
-
-//     const [googleEvents, existingEvents] = await Promise.all([
-//       fetchGoogleCalendarEvents(authUser.accessToken),
-//       getEventsByUserId(authUser.id) // Получаем все существующие события пользователя
-//     ]);
-
-//     // Создаем Map для быстрого поиска событий по iCalUID
-//     const existingEventsMap = new Map(
-//       existingEvents.map(event => [event.iCalUID, event])
-//     );
-
-//     const operations = googleEvents.map(async (googleEvent) => {
-//       const existingEvent = existingEventsMap.get(googleEvent.iCalUID);
-
-//       if (existingEvent) {
-//         // Если событие существует, обновляем его ID и другие поля
-//         await updateEvent(existingEvent.id, {
-//           ...googleEvent,
-//           id: googleEvent.id, // Обновляем ID на Google ID
-//           userId: authUser.id // Сохраняем userId
-//         });
-//       } else {
-//         // Если события нет, создаем новое
-//         await createEvent({
-//           ...googleEvent,
-//           userId: authUser.id
-//         });
-//       }
-//     });
-
-//     await Promise.all(operations);
-//     message.success(`Синхронизировано ${googleEvents.length} событий`);
-    
-//   } catch (error) {
-//     console.error("Ошибка синхронизации:", error);
-//     message.error("Ошибка при синхронизации с Google Calendar");
-//     throw error;
-//   }
-// }
-
 export async function migrateLocalEventsToGoogle(
   userId: string,
   accessToken: string
@@ -117,7 +69,7 @@ export async function migrateLocalEventsToGoogle(
           summary: event.summary,
           start: event.start,
           end: event.end,
-          userId: userId
+          userIds: [userId]
         });
         await deleteEvent(event.id);
         return { success: true };

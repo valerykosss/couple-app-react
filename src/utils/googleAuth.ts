@@ -118,7 +118,7 @@ export async function connectGoogleCalendar(dispatch: AppDispatch) {
     localStorage.setItem("authUser", JSON.stringify(updatedUserData));
     const updatedAuthUser = localStorage.getItem("authUser");
     
-    console.log("func connectGoogleCalendar, updatedAuthUser", updatedAuthUser);
+    // console.log("func connectGoogleCalendar, updatedAuthUser", updatedAuthUser);
 
     await updateUser(currentUserData.id, { 
       accessToken, 

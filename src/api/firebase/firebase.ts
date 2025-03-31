@@ -127,7 +127,7 @@ export async function getEventsByUserId(userId: string): Promise<CalendarEventTy
   try {
     const eventsQuery = query(
       dataPoints.events,
-      where("userId", "==", userId)
+      where("userIds", "array-contains", userId)
     );
 
     const querySnapshot = await getDocs(eventsQuery);
@@ -139,18 +139,53 @@ export async function getEventsByUserId(userId: string): Promise<CalendarEventTy
     throw error;
   }
 }
-
+// export async function createEvent(event: CalendarEventType) {
+//   let eventId = event.id || event.htmlLink?.split('/').pop() || v4();
+//   await setDoc(dataPoints.eventDoc(eventId), {
+//     ...event,
+//     id: eventId,
+//     userIds: event.userIds || [event.createdBy],
+//   });
+//   return eventId;
+// }
 
 export async function createEvent(event: CalendarEventType) {
-  let eventId = event.id || event.htmlLink?.split('/').pop() || v4();
+  // Сохраняем оригинальный eventId из Google или генерируем новый
+  const eventId = event.id || event.htmlLink?.split('/').pop() || v4();
+  
+  // Получаем существующее событие (если есть)
+  const existingEvent = await getEventById(eventId);
+  
+  // Явно проверяем наличие createdBy (хотя он есть в типе)
+  if (!event.createdBy) {
+    throw new Error("Для создания события required поле createdBy");
+  }
+
+  if (existingEvent) {
+    // Нормализуем userIds (на случай если undefined)
+    const existingUserIds = existingEvent.userIds || [];
+    
+    // Добавляем текущего пользователя, если его нет
+    if (!existingUserIds.includes(event.createdBy)) {
+      await updateDoc(dataPoints.eventDoc(eventId), {
+        userIds: [...existingUserIds, event.createdBy], // Добавляем пользователя
+        updatedAt: new Date().toISOString()
+      });
+    }
+    return eventId;
+  }
+
+  // Создаем новое событие
   await setDoc(dataPoints.eventDoc(eventId), {
     ...event,
     id: eventId,
-    userId: event.userId,
+    userIds: [event.createdBy], // Только создатель
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   });
+
   return eventId;
 }
-
 export async function updateEvent(eventId: string, updatedEvent: Partial<CalendarEventType>) {
   await updateDoc(dataPoints.eventDoc(eventId), updatedEvent);
 }
@@ -168,7 +203,10 @@ export async function deleteEvent(eventId: string) {
 }
 
 export function subscribeToUserEvents(userId: string, dispatch: AppDispatch) {
-  const eventsQuery = query(collection(db, "events"), where("userId", "==", userId));
+  const eventsQuery = query(
+    collection(db, "events"), 
+    where("userIds", "array-contains", userId)
+  );
 
   const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
     const userEvents = snapshot.docs.map((doc) => doc.data() as CalendarEventType);

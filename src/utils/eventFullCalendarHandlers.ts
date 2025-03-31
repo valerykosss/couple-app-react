@@ -30,7 +30,8 @@ export async function handleAddEvent(
             summary: values.title,
             start: { dateTime: eventData?.start || "", timeZone },
             end: { dateTime: eventData?.end || "", timeZone },
-            userId,
+            userIds: [userId],
+            createdBy: userId
         };
 
         let firebaseEvent: CalendarEventType;
@@ -92,16 +93,16 @@ export async function handleUpdateEvent(
 
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
-        const updatedEvent: CalendarEventType = {
+        const updatedEvent = {
             id: eventData.id,
             summary: values.title,
             start: { dateTime: eventData.start, timeZone },
             end: { dateTime: eventData.end, timeZone },
-            userId: parsedAuthUser.id,
+            // userIds: [parsedAuthUser.id],
             updatedAt: new Date().toISOString()
         };
 
-        let firebaseEvent: CalendarEventType;
+        let firebaseEvent: Partial<CalendarEventType>;
         
         if (hasGoogleCalendarAccess()) {
             const accessToken = parsedAuthUser.accessToken;

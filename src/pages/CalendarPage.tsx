@@ -34,7 +34,7 @@ export function CalendarPage() {
   const accessToken = parsedAuthUser.accessToken;
   const refreshToken = parsedAuthUser.refreshToken;
 
-  console.log(accessToken);
+  // console.log(accessToken);
 
   const handleConnectGoogleCalendar = async () => {
     try {

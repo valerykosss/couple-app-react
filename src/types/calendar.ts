@@ -21,7 +21,8 @@ export type CalendarEventType = {
     email: string; // Электронная почта участника
     responseStatus: string; // Статус участника
   }>;
-  userId: string; // Идентификатор пользователя (для связи с Firestore)
+  userIds: string[]; // Идентификатор пользователя (для связи с Firestore)
+  createdBy?: string;
   createdAt?: string; // Время создания события
   updatedAt?: string; // Время последнего обновления
   extendedProperties?: {
