@@ -11,6 +11,9 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import ruLocale from '@fullcalendar/core/locales/ru';
 import EventCalendarModal from '../components/EventCalendarModal';
+import { EventResizeDoneArg } from '@fullcalendar/interaction';
+import { handleUpdateEvent } from '../utils/eventFullCalendarHandlers';
+import { EventDropArg } from '@fullcalendar/core';
 
 const { Title } = Typography;
 
@@ -51,6 +54,59 @@ export function CalendarPage() {
     return () => unsubscribe();
   }, [dispatch]);
 
+  
+  const handleEventDrop = async (info: EventDropArg) => {
+    const { event } = info;
+  
+    if (!event.id) {
+      console.error("Событие не содержит ID:", event);
+      return;
+    }
+  
+    try {
+      await handleUpdateEvent(
+        { title: event.title || "" },
+        {
+          id: event.id,
+          start: event.start?.toISOString() || "",
+          end: event.end?.toISOString() || event.start?.toISOString() || "",
+        },
+        dispatch,
+        null,
+        () => {} //заглушка для setLoading
+      );
+    } catch (error) {
+      console.error("Ошибка обновления при перетаскивании:", error);
+      info.revert(); //откат, если не удалось обновить
+    }
+  };
+  
+  const handleEventResize = async (info: EventResizeDoneArg) => {
+    const { event } = info;
+  
+    if (!event.id) {
+      console.error("Событие не содержит ID:", event);
+      return;
+    }
+  
+    try {
+      await handleUpdateEvent(
+        { title: event.title || "" },
+        {
+          id: event.id,
+          start: event.start?.toISOString() || "",
+          end: event.end?.toISOString() || event.start?.toISOString() || "",
+        },
+        dispatch,
+        null,
+        () => {}
+      );
+    } catch (error) {
+      console.error("Ошибка обновления при изменении размера:", error);
+      info.revert();
+    }
+  };
+
 
   const mappedEvents = events.map(event => ({
     id: event.id,
@@ -71,6 +127,10 @@ export function CalendarPage() {
         initialView="dayGridMonth" 
         locales={[ruLocale]} 
         locale="ru" 
+        editable={true}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
+        eventResizableFromStart={true}
         events={mappedEvents}
         headerToolbar={{
           left: 'prev,next today', 

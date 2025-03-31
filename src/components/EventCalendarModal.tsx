@@ -95,6 +95,7 @@ function EventCalendarModal({ visible, eventData, modalType }: EventCalendarModa
     }
   };
 
+
   const handleCancel = () => {
     dispatch(action.eventModalSlice.hideModal());
   };
