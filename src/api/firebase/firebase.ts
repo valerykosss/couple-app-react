@@ -123,6 +123,24 @@ export async function getEventById(eventId: string) {
   return eventSnapshot.data();
 }
 
+export async function getEventsByUserId(userId: string): Promise<CalendarEventType[]> {
+  try {
+    const eventsQuery = query(
+      dataPoints.events,
+      where("userId", "==", userId)
+    );
+
+    const querySnapshot = await getDocs(eventsQuery);
+
+    return querySnapshot.docs.map(doc => doc.data());
+  } catch (error) {
+    console.error("Ошибка при получении событий пользователя:", error);
+    message.error("Не удалось загрузить события");
+    throw error;
+  }
+}
+
+
 export async function createEvent(event: CalendarEventType) {
   let eventId = event.id || event.htmlLink?.split('/').pop() || v4();
   await setDoc(dataPoints.eventDoc(eventId), {

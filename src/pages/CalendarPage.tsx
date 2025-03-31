@@ -1,7 +1,7 @@
 import { Button, Card, Col, message, Row, Typography } from 'antd';
 import { action, AppDispatch, useTypedSelector } from '../store';
 import handleGoogleAuth, { connectGoogleCalendar } from '../utils/googleAuth';
-import { syncGoogleCalendarToFirestore } from '../utils/syncGoogleCalendarToFirestore';
+import { migrateLocalEventsToGoogle, syncGoogleCalendarToFirestore } from '../utils/syncGoogleCalendarToFirestore';
 import { useDispatch } from 'react-redux';
 import { useEffect, useState } from 'react';
 import { subscribeToUserEvents } from '../api/firebase/firebase';
@@ -34,9 +34,35 @@ export function CalendarPage() {
   const accessToken = parsedAuthUser.accessToken;
   const refreshToken = parsedAuthUser.refreshToken;
 
+  console.log(accessToken);
+
   const handleConnectGoogleCalendar = async () => {
     try {
       await connectGoogleCalendar(dispatch);
+      const authUser = localStorage.getItem('authUser');
+      if (!authUser) {
+        throw new Error("Данные пользователя не найдены");
+      }
+  
+      const parsedAuthUser = JSON.parse(authUser);
+      const accessToken = parsedAuthUser.accessToken;
+
+      const migrationResult = await migrateLocalEventsToGoogle(
+        userId,
+        accessToken
+      );
+
+      if (migrationResult.success) {
+        message.success(`Успешно мигрировано ${migrationResult.migratedCount} событий`);
+        setHasGoogleAuth(true);
+        await syncGoogleCalendarToFirestore();
+      } else {
+        message.warning(
+          `Мигрировано ${migrationResult.migratedCount} событий, ` +
+          `${migrationResult.errors.length} с ошибками`
+        );
+      }
+
       setHasGoogleAuth(true);
       message.success("Google Calendar успешно подключен");
     } catch (error) {

@@ -27,4 +27,14 @@ export type CalendarEventType = {
   extendedProperties?: {
     private: Record<string, string>; // Дополнительные пользовательские свойства
   }
+
+  iCalUID?: string; // Для событий из Google Calendar
+  kind?: string; // Например "calendar#event" для Google
+  organizer?: {
+    email: string;
+    self?: boolean;
+  };
+  etag?: string; // Для синхронизации изменений
+  migratedAt?: string; // Для отслеживания миграции
+  migrationError?: string; // Для хранения ошибок миграции
 }

@@ -97,3 +97,12 @@ export async function deleteGoogleCalendarEvent(token: string, eventId: string) 
     throw error;
   }
 }
+
+export function hasGoogleCalendarAccess(): boolean {
+  try {
+    const { accessToken, refreshToken } = JSON.parse(localStorage.getItem('authUser') || '{}');
+    return Boolean(accessToken && refreshToken);
+  } catch {
+    return false;
+  }
+}
