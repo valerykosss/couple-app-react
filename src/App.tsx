@@ -9,11 +9,24 @@ import useAuthCheck from './hooks/useAuthCheck';
 import ProtectedRoute from './components/ProtectedRoute';
 import { CalendarPage } from './pages/CalendarPage';
 import { TinderPage } from './pages/TinderPage';
+import { Layout, Spin } from 'antd';
+import { Content } from 'antd/es/layout/layout';
 
 function App() {
   const loading = useAuthCheck();
 
-  if (loading) return <p>Загрузка...</p>;
+  if (loading) {
+    return (
+      <Spin 
+        fullscreen 
+        tip="Загрузка..." 
+        style={{ 
+          color: '#001529',
+        }} 
+      />
+    );
+  }
+  
 
   return (
     <BrowserRouter>

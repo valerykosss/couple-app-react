@@ -55,7 +55,21 @@ export default function CommonHeader() {
   return (
     <>
       <Header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Link to="/">Главная</Link>
+        <Link to="/" style={{ 
+          display: "flex",
+          alignItems: "center",
+          height: "100%"
+        }}>
+          <img 
+            src="/images/logo.png" 
+            alt="Главная"
+            style={{
+              height: "48px", 
+              width: "auto",
+              display: "block" 
+            }}
+          />
+        </Link>
 
         <div>
           {token && (
