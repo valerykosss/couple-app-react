@@ -4,7 +4,7 @@ import handleGoogleAuth, { connectGoogleCalendar } from '../utils/googleAuth';
 import { migrateLocalEventsToGoogle, syncGoogleCalendarToFirestore } from '../utils/syncGoogleCalendarToFirestore';
 import { useDispatch } from 'react-redux';
 import { useEffect, useState } from 'react';
-import { getUser, subscribeToUserEvents } from '../api/firebase/firebase';
+import { getUser, getUserCouples, subscribeToUserEvents } from '../api/firebase/firebase';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -13,13 +13,13 @@ import ruLocale from '@fullcalendar/core/locales/ru';
 import EventCalendarModal from '../components/EventCalendarModal';
 import { EventResizeDoneArg } from '@fullcalendar/interaction';
 import { handleUpdateEvent } from '../utils/eventFullCalendarHandlers';
-import { EventDropArg } from '@fullcalendar/core';
+import { EventApi, EventClickArg, EventDropArg } from '@fullcalendar/core';
 
 const { Title } = Typography;
 
 export function CalendarPage() {
   const dispatch = useDispatch<AppDispatch>();
-  const events = useTypedSelector((state) => state.calendarSlice.events);
+  const { events, partnerEvents, partnerId } = useTypedSelector((state) => state.calendarSlice);
   const modalState = useTypedSelector((state) => state.eventModalSlice);
   const [hasGoogleAuth, setHasGoogleAuth] = useState(false);
   const [showConnectCard, setShowConnectCard] = useState(false);
@@ -36,34 +36,53 @@ export function CalendarPage() {
   const refreshToken = parsedAuthUser.refreshToken;
 
   useEffect(() => {
-    const checkGoogleAuth = async () => {
+    let unsubscribeUser = () => {};
+    let unsubscribePartner = () => {};
+  
+    const loadData = async () => {
+      if (!userId) {
+        message.error("Не удалось найти userId.");
+        return;
+      }
+  
       if (accessToken && refreshToken) {
         setHasGoogleAuth(true);
         setShowConnectCard(false);
         await syncGoogleCalendarToFirestore();
-        return;
-      }
-
-      const userData = await getUser(userId);
-      console.log(userData);
-      if (userData?.accessToken) {
-        setHasGoogleAuth(true);
-        setShowConnectCard(false);
       } else {
-        setShowConnectCard(true);
+        const userData = await getUser(userId);
+        setHasGoogleAuth(!!userData?.accessToken);
+        setShowConnectCard(!userData?.accessToken);
       }
-      console.log(userId);
+  
+      const couples = await getUserCouples(userId);
+      const partnerId = couples[0]?.usersId.find(id => id !== userId) ?? null;
+      dispatch(action.calendarSlice.setPartnerId(partnerId));
+  
+      unsubscribeUser = subscribeToUserEvents(
+        userId,
+        dispatch,
+        action.calendarSlice.setEvents
+      );
+  
+      if (partnerId) {
+        unsubscribePartner = subscribeToUserEvents(
+          partnerId,
+          dispatch,
+          action.calendarSlice.setPartnerEvents
+        );
+      }
     };
-
-    if (!userId) {
-      message.error("Не удалось найти userId.");
-      return;
-    }
-
-    checkGoogleAuth();
-    const unsubscribe = subscribeToUserEvents(userId, dispatch);
-
-    return () => unsubscribe();
+  
+    loadData().catch(error => {
+      console.error("Ошибка загрузки:", error);
+      message.error("Ошибка загрузки календаря");
+    });
+  
+    return () => {
+      unsubscribeUser();
+      unsubscribePartner();
+    };
   }, [dispatch, accessToken, refreshToken, userId]);
 
 
@@ -103,6 +122,11 @@ export function CalendarPage() {
   };
 
   const handleEventDrop = async (info: EventDropArg) => {
+    if (!info.event.extendedProps.canEdit) {
+      info.revert();
+      return;
+    }
+
     const { event } = info;
   
     if (!event.id) {
@@ -129,6 +153,11 @@ export function CalendarPage() {
   };
   
   const handleEventResize = async (info: EventResizeDoneArg) => {
+    if (!info.event.extendedProps.canEdit) {
+      info.revert();
+      return;
+    }
+
     const { event } = info;
   
     if (!event.id) {
@@ -154,16 +183,51 @@ export function CalendarPage() {
     }
   };
 
+  const handleEventClick = (info: EventClickArg) => {
+    if (!info.event.extendedProps.canEdit || !info.event.id) {
+      return;
+    }
 
-  const mappedEvents = events.map(event => ({
-    id: event.id,
-    title: event.summary, 
-    start: event.start.dateTime,
-    end: event.end?.dateTime || event.start.dateTime,
-    backgroundColor: "#3788d8",
-    borderColor: "#3788d8", 
-    textColor: "#ffffff"
-  }));
+    dispatch(
+      action.eventModalSlice.showEditDeleteModal({
+        id: info.event.id,
+        title: info.event.title,
+        start: info.event.startStr,
+        end: info.event.endStr,
+      })
+    );
+  };
+
+  const mappedEvents = [
+    ...events.map(event => ({
+      id: event.id,
+      title: event.summary, 
+      start: event.start.dateTime,
+      end: event.end?.dateTime || event.start.dateTime,
+      backgroundColor: "#3788d8",
+      borderColor: "#3788d8", 
+      textColor: "#ffffff",
+      extendedProps: {
+        canEdit: true
+      }
+    })),
+    ...partnerEvents.map(event => ({
+      id: event.id,
+      title: event.summary,
+      start: event.start.dateTime,
+      end: event.end?.dateTime || event.start.dateTime,
+      backgroundColor: "#ff9f89",
+      borderColor: "#ff9f89", 
+      textColor: "#000000",
+      extendedProps: {
+        canEdit: false
+      }
+    }))
+  ];
+
+  const isEventEditable = (event: EventApi): boolean => {
+    return event.extendedProps['canEdit'] === true;
+  };
 
   return (
     <div className="calendar-page">
@@ -199,6 +263,7 @@ export function CalendarPage() {
         eventResize={handleEventResize}
         eventResizableFromStart={true}
         events={mappedEvents}
+        eventClick={handleEventClick}
         headerToolbar={{
           left: 'prev,next today', 
           center: 'title', 
@@ -214,20 +279,6 @@ export function CalendarPage() {
             buttonText: 'Неделя',
             selectable: true,
           },
-        }}
-        eventClick={(info) => {
-          if (!info.event.id) {
-            console.error("Event missing ID:", info.event);
-            return;
-          }
-          dispatch(
-            action.eventModalSlice.showEditDeleteModal({
-              id: info.event.id,
-              title: info.event.title,
-              start: info.event.startStr,
-              end: info.event.endStr,
-            })
-          );
         }}
         contentHeight="500px"
         selectable={true}

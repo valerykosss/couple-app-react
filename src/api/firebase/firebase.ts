@@ -19,6 +19,7 @@ import { v4 } from "uuid";
 import { CalendarEventType } from "../../types/calendar";
 import { message } from "antd";
 import { action, AppDispatch } from "../../store";
+import { Action, AnyAction } from "@reduxjs/toolkit";
 
 
 const firebaseConfig = {
@@ -64,8 +65,14 @@ export type FirebaseUserType = {
   accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresIn: string | null;
-
 }
+
+export type CoupleType = {
+  id: string;
+  usersId: string[];
+  createdAt: string;
+  updatedAt: string;
+};
 
 const dataPoints = {
   //ссылка на всех пользователей
@@ -76,6 +83,8 @@ const dataPoints = {
   events: dataPoint<CalendarEventType>('events'),
   //на одно событие
   eventDoc: (eventId: string) => dataPointForOne<CalendarEventType>('events', eventId),
+  couples: dataPoint<CoupleType>('couples'),
+  coupleDoc: (coupleId: string) => dataPointForOne<CoupleType>('couples', coupleId),
 }
 
 //USER
@@ -195,15 +204,110 @@ export async function deleteEvent(eventId: string) {
   await deleteDoc(docRef);
 }
 
-export function subscribeToUserEvents(userId: string, dispatch: AppDispatch) {
-  const eventsQuery = query(
-    collection(db, "events"), 
-    where("userIds", "array-contains", userId)
+// export function subscribeToUserEvents(userId: string, dispatch: AppDispatch) {
+//   const eventsQuery = query(
+//     collection(db, "events"), 
+//     where("userIds", "array-contains", userId)
+//   );
+
+//   const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
+//     const userEvents = snapshot.docs.map((doc) => doc.data() as CalendarEventType);
+//     dispatch(action.calendarSlice.setEvents(userEvents));
+//   });
+
+//   return unsubscribe;
+// }
+
+// В файле firebase API
+export function subscribeToUserEvents(
+  userId: string,
+  dispatch: AppDispatch,
+  actionCreator: (events: CalendarEventType[]) => Action // Убрали опциональность
+) {
+  const q = query(collection(db, "events"), where("userIds", "array-contains", userId));
+  
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const events = snapshot.docs.map(doc => doc.data() as CalendarEventType);
+    dispatch(actionCreator(events)); // Всегда используем переданный actionCreator
+  });
+
+  return unsubscribe;
+}
+
+//COUPLES 
+
+export async function createCouple(userId: string) {
+  const coupleId = v4();
+  const now = new Date().toISOString();
+  
+  await setDoc(dataPoints.coupleDoc(coupleId), {
+    id: coupleId,
+    usersId: [userId],
+    createdAt: now,
+    updatedAt: now
+  });
+
+  return coupleId;
+}
+
+export async function getCoupleById(coupleId: string) {
+  const coupleSnapshot = await getDoc(dataPoints.coupleDoc(coupleId));
+  return coupleSnapshot.data();
+}
+
+export async function addUserToCouple(coupleId: string, userId: string) {
+  const couple = await getCoupleById(coupleId);
+  if (!couple) {
+    throw new Error('Пара не найдена');
+  }
+
+  if (couple.usersId.includes(userId)) {
+    return; //прльзователь уже в паре
+  }
+
+  await updateDoc(dataPoints.coupleDoc(coupleId), {
+    usersId: [...couple.usersId, userId],
+    updatedAt: new Date().toISOString()
+  });
+}
+
+export async function getUserCouples(userId: string) {
+  const couplesQuery = query(
+    dataPoints.couples,
+    where("usersId", "array-contains", userId)
   );
 
-  const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
-    const userEvents = snapshot.docs.map((doc) => doc.data() as CalendarEventType);
-    dispatch(action.calendarSlice.setEvents(userEvents));
+  const querySnapshot = await getDocs(couplesQuery);
+  return querySnapshot.docs.map(doc => doc.data());
+}
+
+export async function updateCouple(coupleId: string, updates: Partial<Omit<CoupleType, 'id'>>) {
+  await updateDoc(dataPoints.coupleDoc(coupleId), {
+    ...updates,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+export async function deleteCouple(coupleId: string) {
+  const docRef = dataPoints.coupleDoc(coupleId);
+  const docSnap = await getDoc(docRef);
+  
+  if (!docSnap.exists()) {
+    throw new Error(`Пара с ID ${coupleId} не найдена`);
+  }
+  
+  await deleteDoc(docRef);
+}
+
+export function subscribeToUserCouples(userId: string, dispatch: AppDispatch) {
+  const couplesQuery = query(
+    dataPoints.couples,
+    where("usersId", "array-contains", userId)
+  );
+
+  const unsubscribe = onSnapshot(couplesQuery, (snapshot) => {
+    const couples = snapshot.docs.map(doc => doc.data());
+    // dispatch(action.couplesSlice.setCouples(couples)); сделать 
   });
 
   return unsubscribe;
