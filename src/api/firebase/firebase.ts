@@ -93,7 +93,7 @@ export async function getUser(userId: string) {
 
 //не полностью можно передавать 
 export async function createUser(user: Partial<FirebaseUserType>) {
-  const userId = v4();
+  const userId = user.id || v4();
   await setDoc(dataPoints.userDoc(userId), user);
 
   return userId;
