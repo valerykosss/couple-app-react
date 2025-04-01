@@ -1,41 +1,41 @@
 export type CalendarEventType = {
-  id: string; // ID события, уникальный для Google Calendar
-  summary: string; // Название события
-  description?: string; // Описание события
-  location?: string; // Местоположение события
+  id: string; 
+  summary: string; 
+  description?: string;
+  location?: string;
   start: {
-    dateTime: string; // Время начала события в ISO 8601
-    timeZone: string; // Часовой пояс
+    dateTime: string;
+    timeZone: string;
   };
   end: {
-    dateTime: string; // Время окончания события в ISO 8601
-    timeZone: string; // Часовой пояс
+    dateTime: string;
+    timeZone: string;
   };
-  htmlLink?: string; // Ссылка на событие в Google Calendar
-  status?: string; // Статус события, например, "confirmed"
+  htmlLink?: string;
+  status?: string;
   creator?: {
-    email: string; // Электронная почта создателя события
-    displayName: string; // Имя создателя
+    email: string; 
+    displayName: string;
   };
   attendees?: Array<{
-    email: string; // Электронная почта участника
-    responseStatus: string; // Статус участника
+    email: string;
+    responseStatus: string; 
   }>;
-  userIds: string[]; // Идентификатор пользователя (для связи с Firestore)
+  userIds: string[]; 
   createdBy?: string;
-  createdAt?: string; // Время создания события
-  updatedAt?: string; // Время последнего обновления
+  createdAt?: string; 
+  updatedAt?: string; 
   extendedProperties?: {
-    private: Record<string, string>; // Дополнительные пользовательские свойства
+    private: Record<string, string>; 
   }
 
-  iCalUID?: string; // Для событий из Google Calendar
-  kind?: string; // Например "calendar#event" для Google
+  iCalUID?: string; 
+  kind?: string;
   organizer?: {
     email: string;
     self?: boolean;
   };
-  etag?: string; // Для синхронизации изменений
-  migratedAt?: string; // Для отслеживания миграции
-  migrationError?: string; // Для хранения ошибок миграции
+  etag?: string; 
+  migratedAt?: string;
+  migrationError?: string;
 }

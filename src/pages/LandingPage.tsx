@@ -49,24 +49,24 @@ export default function LandingPage() {
                 <Card
                   hoverable
                   style={{
-                    borderRadius: "8px", // Закругленные углы
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)", // Тень для эффекта выпуклости
-                    transition: "transform 0.3s ease-in-out", // Плавная анимация при наведении
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)", 
+                    transition: "transform 0.3s ease-in-out", 
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.05)"; // Увеличение карточки при наведении
+                    e.currentTarget.style.transform = "scale(1.05)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)"; // Возврат к исходному размеру
+                    e.currentTarget.style.transform = "scale(1)";
                   }}
                 >
                   <Row gutter={16} align="middle">
                     <Col span={13}>
-                      <Title level={4} style={{ color: "#1890ff" }}>{item.title}</Title> {/* Цвет заголовка */}
+                      <Title level={4} style={{ color: "#1890ff" }}>{item.title}</Title>
                       <Paragraph>{item.text}</Paragraph>
                     </Col>
                     <Col span={11}>
-                      <img src={item.img} alt={item.title} style={{ width: "100%", borderRadius: "8px" }} /> {/* Закругленные углы у изображений */}
+                      <img src={item.img} alt={item.title} style={{ width: "100%", borderRadius: "8px" }} />
                     </Col>
                   </Row>
                 </Card>

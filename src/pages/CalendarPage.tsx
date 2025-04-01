@@ -22,6 +22,7 @@ export function CalendarPage() {
   const events = useTypedSelector((state) => state.calendarSlice.events);
   const modalState = useTypedSelector((state) => state.eventModalSlice);
   const [hasGoogleAuth, setHasGoogleAuth] = useState(false);
+  const [showConnectCard, setShowConnectCard] = useState(false);
   
   const authUser = localStorage.getItem('authUser');
   if (!authUser) {
@@ -34,7 +35,6 @@ export function CalendarPage() {
   const accessToken = parsedAuthUser.accessToken;
   const refreshToken = parsedAuthUser.refreshToken;
 
-  // console.log(accessToken);
 
   const handleConnectGoogleCalendar = async () => {
     try {

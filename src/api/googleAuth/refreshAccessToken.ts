@@ -22,24 +22,19 @@ export async function refreshAccessToken(refreshToken: string) {
     });
 
     if (!response.ok) {
-      // Получаем тело ответа с ошибкой
       const errorData = await response.json();
       console.error('Error response from Google OAuth:', errorData);
     
-      // Если ошибка в токене (например, он был отозван)
       if (errorData.error === "invalid_grant" && errorData.error_description === "Token has been revoked.") {
         console.error("Token has been revoked, clearing local data.");
-        localStorage.clear(); // Очищаем данные в localStorage (например, для повторной авторизации)
+        localStorage.clear();
       }
-      // Генерируем исключение с кодом ошибки
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    // Если запрос успешен, обрабатываем токен
     const data = await response.json();
     console.log('Response from Google OAuth:', data);
     
-    // Возвращаем access token, если он есть в ответе
     if (data.access_token) {
       return {
         accessToken: data.access_token,

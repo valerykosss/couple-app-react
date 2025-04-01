@@ -150,36 +150,30 @@ export async function getEventsByUserId(userId: string): Promise<CalendarEventTy
 // }
 
 export async function createEvent(event: CalendarEventType) {
-  // Сохраняем оригинальный eventId из Google или генерируем новый
   const eventId = event.id || event.htmlLink?.split('/').pop() || v4();
   
-  // Получаем существующее событие (если есть)
   const existingEvent = await getEventById(eventId);
   
-  // Явно проверяем наличие createdBy (хотя он есть в типе)
   if (!event.createdBy) {
     throw new Error("Для создания события required поле createdBy");
   }
 
   if (existingEvent) {
-    // Нормализуем userIds (на случай если undefined)
     const existingUserIds = existingEvent.userIds || [];
     
-    // Добавляем текущего пользователя, если его нет
     if (!existingUserIds.includes(event.createdBy)) {
       await updateDoc(dataPoints.eventDoc(eventId), {
-        userIds: [...existingUserIds, event.createdBy], // Добавляем пользователя
+        userIds: [...existingUserIds, event.createdBy],
         updatedAt: new Date().toISOString()
       });
     }
     return eventId;
   }
 
-  // Создаем новое событие
   await setDoc(dataPoints.eventDoc(eventId), {
     ...event,
     id: eventId,
-    userIds: [event.createdBy], // Только создатель
+    userIds: [event.createdBy], 
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
@@ -191,7 +185,6 @@ export async function updateEvent(eventId: string, updatedEvent: Partial<Calenda
 }
 
 export async function deleteEvent(eventId: string) {
-  // await deleteDoc(dataPoints.eventDoc(eventId));
   const docRef = dataPoints.eventDoc(eventId);
   const docSnap = await getDoc(docRef);
   

@@ -44,7 +44,6 @@ export default async function handleGoogleAuth({
       throw new Error("Не удалось получить access token");
     }
 
-    // Запрос на обновление accessToken для получения expires_in
     // const tokenData = await refreshAccessToken(refreshToken);
     //console.log("Отправляем refresh-токен:", refreshToken); 
 
@@ -101,7 +100,6 @@ export async function connectGoogleCalendar(dispatch: AppDispatch) {
       throw new Error("Не удалось получить токены");
     }
 
-    // Получаем текущие данные пользователя
     const authUser = localStorage.getItem("authUser");
     if (!authUser) {
       throw new Error("Пользователь не авторизован");

@@ -14,7 +14,6 @@ export function isLocalEvent(event: CalendarEventType): boolean {
 
 export function syncGoogleCalendarToFirestore() {
   return (async () => {
-    // Извлекаем данные пользователя из localStorage
     const authUser = localStorage.getItem('authUser');
     if (!authUser) {
       message.error("Данные пользователя не найдены в localStorage.");
@@ -22,10 +21,8 @@ export function syncGoogleCalendarToFirestore() {
     }
 
     try {
-      // Преобразуем строку в объект
       const parsedAuthUser = JSON.parse(authUser);
       
-      // Извлекаем accessToken и userId
       const accessToken = parsedAuthUser.accessToken;
       const userId = parsedAuthUser.id;
 
@@ -36,14 +33,12 @@ export function syncGoogleCalendarToFirestore() {
 
       const googleEvents = await fetchGoogleCalendarEvents(accessToken);
 
-      // Преобразуем их в формат, который подойдёт для Firestore
       const eventsToSave = googleEvents.map(event => ({
         ...event,
         userIds: [userId],
         createdBy: userId
       }));
 
-      // Сохраняем события в Firestore
       for (const event of eventsToSave) {
         await createEvent(event);
       }
@@ -73,13 +68,7 @@ export async function migrateLocalEventsToGoogle(
         });
         await deleteEvent(event.id);
         return { success: true };
-      }
-          // .then(googleEvent => ({
-          //   id: googleEvent.id,
-          //   iCalUID: googleEvent + '@google.com',
-          //   htmlLink: googleEvent.htmlLink
-          // }))
-      )
+      })
     );
 
     return {
