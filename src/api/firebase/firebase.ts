@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import {
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -8,6 +9,7 @@ import {
   getDoc,
   getDocs,
   initializeFirestore,
+  limit,
   onSnapshot,
   query,
   QueryDocumentSnapshot,
@@ -20,7 +22,7 @@ import { CalendarEventType } from "../../types/calendar";
 import { message } from "antd";
 import { action, AppDispatch } from "../../store";
 import { Action, AnyAction } from "@reduxjs/toolkit";
-import { DateCardType } from "../../types/dateCards";
+import { ActiveCoupleCards, DateCardType, SwipeSession } from "../../types/dateCards";
 
 
 const firebaseConfig = {
@@ -426,12 +428,18 @@ export async function createDateCard(card: Omit<DateCardType, 'id' | 'createdAt'
   return cardId;
 }
 
-export async function getDateCard(cardId: string) {
-  const snapshot = await getDoc(dataPoints.dateCardDoc(cardId));
-  return snapshot.data();
-}
+export const getDateCard = async (cardId: string): Promise<DateCardType | null> => {
+  try {
+    const docRef = doc(db, 'dateCards', cardId);
+    const snapshot = await getDoc(docRef);
+    return snapshot.exists() ? snapshot.data() as DateCardType : null;
+  } catch (error) {
+    console.error('Error getting date card:', error);
+    throw error;
+  }
+};
 
-// firebase.ts
+
 export async function getDefaultDateCards() {
   try {
     // Создаем запрос для получения всех карточек с type = 'default'
@@ -484,11 +492,20 @@ export async function deleteDateCard(cardId: string) {
 
 //ACTIVE COUPLE CARDS OPERATIONS
 
-export async function getActiveCoupleCards(coupleId: string) {
-  const snapshot = await getDocs(dataPoints.activeCoupleCardsForCouple(coupleId));
-  if (snapshot.empty) return null;
-  return snapshot.docs[0].data();
-}
+export const getActiveCoupleCards = async (coupleId: string): Promise<ActiveCoupleCards | null> => {
+  try {
+    const q = query(
+      collection(db, 'activeCoupleCards'),
+      where('coupleId', '==', coupleId),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.empty ? null : snapshot.docs[0].data() as ActiveCoupleCards;
+  } catch (error) {
+    console.error('Error getting active cards:', error);
+    throw error;
+  }
+};
 
 export async function createActiveCoupleCards(coupleId: string, cardIds: string[]) {
   const id = v4();
@@ -513,67 +530,84 @@ export async function updateActiveCoupleCards(id: string, cardIds: string[]) {
 
 //SWIPE SESSIONS OPERATIONS
 
-export async function createSwipeSession(params: {
-  coupleId: string;
-  activeCoupleCardsId: string;
-  createdBy: string;
-}) {
-  const sessionId = `${params.coupleId}_${new Date().toISOString()}`;
-  const id = v4();
-  
-  await setDoc(dataPoints.swipeSessionDoc(id), {
-    id,
-    sessionId,
-    coupleId: params.coupleId,
-    activeCoupleCardsId: params.activeCoupleCardsId,
-    status: 'active',
-    createdBy: params.createdBy,
-    createdAt: new Date().toISOString(),
-    completedUserIds: [],
-    matchedCards: [],
-    swipes: {},
-  });
+export const createSwipeSession = async (
+  params: Omit<SwipeSession, 'id'>
+): Promise<SwipeSession> => {
+  try {
+    const sessionId = `${params.coupleId}_${Date.now()}`;
+    const now = new Date().toISOString();
+    
+    const sessionData: SwipeSession = {
+      id: sessionId,
+      ...params,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+      completedUserIds: [],
+      matchedCards: [],
+      swipes: {}
+    };
 
-  return id;
-}
+    await setDoc(doc(db, 'swipeSessions', sessionId), sessionData);
+    return sessionData;
+  } catch (error) {
+    console.error('Error creating swipe session:', error);
+    throw error;
+  }
+};
 
-export async function getActiveSwipeSession(coupleId: string) {
-  const snapshot = await getDocs(dataPoints.activeSwipeSessionsForCouple(coupleId));
-  if (snapshot.empty) return null;
-  return snapshot.docs[0].data();
-}
+export const getActiveSwipeSession = async (coupleId: string): Promise<SwipeSession | null> => {
+  try {
+    const q = query(
+      collection(db, 'swipeSessions'),
+      where('coupleId', '==', coupleId),
+      where('status', '==', 'active'),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.empty ? null : snapshot.docs[0].data() as SwipeSession;
+  } catch (error) {
+    console.error('Error getting active session:', error);
+    throw error;
+  }
+};
 
-export async function updateUserSwipes(
+export const updateUserSwipes = async (
   sessionId: string,
   userId: string,
   chosenCards: string[],
   declinedCards: string[]
-) {
-  const updates = {
-    [`swipes.${userId}`]: {
-      chosenActiveCards: chosenCards,
-      declinedActiveCards: declinedCards,
-    },
-    updatedAt: new Date().toISOString(),
-  };
-
-  await updateDoc(dataPoints.swipeSessionDoc(sessionId), updates);
-}
-
-export async function markUserCompletedSwipes(sessionId: string, userId: string) {
-  const session = await getDoc(dataPoints.swipeSessionDoc(sessionId));
-  if (!session.exists()) throw new Error('Сессия не найдена');
-
-  const data = session.data();
-  const completedUserIds = data.completedUserIds || [];
-
-  if (!completedUserIds.includes(userId)) {
-    await updateDoc(dataPoints.swipeSessionDoc(sessionId), {
-      completedUserIds: [...completedUserIds, userId],
+): Promise<void> => {
+  try {
+    const updates: Partial<SwipeSession> = {
       updatedAt: new Date().toISOString(),
-    });
+      [`swipes.${userId}`]: {
+        chosenActiveCards: arrayUnion(...chosenCards),
+        declinedActiveCards: arrayUnion(...declinedCards)
+      }
+    };
+
+    await updateDoc(doc(db, 'swipeSessions', sessionId), updates);
+  } catch (error) {
+    console.error('Error updating swipes:', error);
+    throw error;
   }
-}
+};
+
+export const markUserCompletedSwipes = async (
+  sessionId: string,
+  userId: string
+): Promise<void> => {
+  try {
+    await updateDoc(doc(db, 'swipeSessions', sessionId), {
+      completedUserIds: arrayUnion(userId),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error marking user completed:', error);
+    throw error;
+  }
+};
 
 export async function updateMatchedCards(sessionId: string, matchedCards: string[]) {
   await updateDoc(dataPoints.swipeSessionDoc(sessionId), {
@@ -661,6 +695,16 @@ export async function cancelScheduledDate(dateId: string) {
 }
 
 //SUBSCRIPTIONS
+
+export const subscribeToSession = (
+  sessionId: string,
+  callback: (session: SwipeSession | null) => void
+) => {
+  return onSnapshot(doc(db, 'swipeSessions', sessionId), (doc) => {
+    callback(doc.exists() ? doc.data() as SwipeSession : null);
+  });
+};
+
 
 export function subscribeToActiveCoupleCards(
   coupleId: string,
