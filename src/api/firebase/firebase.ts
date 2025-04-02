@@ -188,6 +188,24 @@ export async function getEventById(eventId: string) {
   return eventSnapshot.data();
 }
 
+export async function getUserByEmail(email: string) {
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return null;
+    }
+
+    const userDoc = querySnapshot.docs[0];
+    return { id: userDoc.id, ...userDoc.data() };
+  } catch (error) {
+    console.error("Ошибка при поиске пользователя по email:", error);
+    throw new Error("Ошибка поиска пользователя");
+  }
+}
+
 export async function getEventsByUserId(
   userId: string
 ): Promise<CalendarEventType[]> {

@@ -1,128 +1,13 @@
 // DateCardsPage.tsx
 import React, { useEffect, useState } from 'react';
 import { Button, Table, Form, Input, message, Image, Card } from 'antd';
-import { ActiveCoupleCardsType, createDateCard, getActiveCoupleCards, getCoupleByUserIds, getCoupleDateCards, getDefaultDateCards, getUserCouples, updateActiveCoupleCards } from '../api/firebase/firebase';
+import { ActiveCoupleCardsType, createActiveCoupleCards, createDateCard, getActiveCoupleCards, getCoupleByUserIds, getCoupleDateCards, getDefaultDateCards, getUserCouples, updateActiveCoupleCards } from '../api/firebase/firebase';
 import { useDispatch } from 'react-redux';
 import { action, AppDispatch, useTypedSelector } from '../store';
 import { DateCardType } from '../types/dateCards';
 
 const { TextArea } = Input;
 
-
-// const addDefaultCards = async () => {
-//     const defaultCards = [
-//         {
-//           title: "Романтический ужин",
-//           description: "Ужин при свечах в уютном ресторане",
-//           imageUrl: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 120,
-//           type: "default" as const,
-//           coupleId: null
-//         },
-//         {
-//           title: "Кофе в книжном",
-//           description: "Знакомство за чашкой ароматного кофе",
-//           imageUrl: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 60,
-//           type: "default" as const,
-//           coupleId: null
-//         },
-//         {
-//           title: "Велосипедная прогулка",
-//           description: "Активный отдых в парке",
-//           imageUrl: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 90,
-//           type: "default" as const,
-//           coupleId: null
-//         },
-//         {
-//           title: "Кулинарный мастер-класс",
-//           description: "Совместное приготовление ужина",
-//           imageUrl: "https://images.unsplash.com/photo-1547592180-85f173990554?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 180,
-//           type: "default" as const,
-//           coupleId: null
-//         },
-//         {
-//           title: "Фестиваль",
-//           description: "Фестиваль под открытым небом",
-//           imageUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 240,
-//           type: "default" as const,
-//           coupleId: null
-//         },
-//         {
-//           title: "Посещение музея",
-//           description: "Культурное свидание среди искусства",
-//           imageUrl: "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 120,
-//           type: "default" as const,
-//           coupleId: null
-//         },
-//         {
-//           title: "Кинотеатр",
-//           description: "Ретро-кинотеатр",
-//           imageUrl: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 150,
-//           type: "default" as const,
-//           coupleId: null
-//         }
-//       ];
-
-//       const customCards = [
-//         {
-//           title: "Прогулка на закате",
-//           description: "Совместная прогулка по набережной",
-//           imageUrl: "https://images.unsplash.com/photo-1494774157365-9e04c6720e47?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 120,
-//           type: "custom" as const,
-//           coupleId: "QhPv3JMrUAq02YEOUKbW",
-//           createdBy: "03U07iXRTrN5wTJqDMh7aPiNgcx2"
-//         },
-//         {
-//           title: "Концерт",
-//           description: "Живая музыка и отличная атмосфера",
-//           imageUrl: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 180,
-//           type: "custom" as const,
-//           coupleId: "QhPv3JMrUAq02YEOUKbW",
-//           createdBy: "03U07iXRTrN5wTJqDMh7aPiNgcx2"
-//         },
-//         {
-//           title: "Компьютерные игры",
-//           description: "Веселый вечер с играми",
-//           imageUrl: "https://images.unsplash.com/photo-1560253023-3ec5d502959f?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 120,
-//           type: "custom" as const,
-//           coupleId: "QhPv3JMrUAq02YEOUKbW",
-//           createdBy: "03U07iXRTrN5wTJqDMh7aPiNgcx2"
-//         },
-//         {
-//           title: "Дегустация вин",
-//           description: "Знакомство с видами",
-//           imageUrl: "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-//           durationMinutes: 90,
-//           type: "custom" as const,
-//           coupleId: "QhPv3JMrUAq02YEOUKbW",
-//           createdBy: "03U07iXRTrN5wTJqDMh7aPiNgcx2"
-//         }
-//       ];
-
-//     try {
-//       for (const card of defaultCards) {
-//         await createDateCard(card);
-//       }
-
-//       for (const card of customCards) {
-//         await createDateCard(card);
-//       }
-
-//       message.success('Тестовые карточки успешно добавлены');
-//     } catch (error) {
-//       message.error('Ошибка при добавлении карточек');
-//       console.error(error);
-//     }
-//   };
 
 const DateRecordsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -200,22 +85,24 @@ const DateRecordsPage: React.FC = () => {
 
   const handleToggleCard = async (cardId: string) => {
     if (!coupleId) return;
-
+  
     try {
-      dispatch(action.dateCardsSlice.toggleCardActive(cardId));
       const activeCards = await getActiveCoupleCards(coupleId);
+      
+      const newCardIds = activeCardIds.includes(cardId)
+        ? activeCardIds.filter(id => id !== cardId)
+        : [...activeCardIds, cardId];
+  
       if (activeCards) {
-        await updateActiveCoupleCards(
-          activeCards.id,
-          activeCardIds.includes(cardId)
-            ? activeCardIds.filter(id => id !== cardId)
-            : [...activeCardIds, cardId]
-        );
+        await updateActiveCoupleCards(activeCards.id, newCardIds);
+      } else {
+        await createActiveCoupleCards(coupleId, newCardIds);
       }
+  
+      dispatch(action.dateCardsSlice.setActiveCardIds(newCardIds));
     } catch (error) {
       console.error('Error toggling card:', error);
       message.error('Ошибка обновления карточки');
-      dispatch(action.dateCardsSlice.toggleCardActive(cardId));
     }
   };
 
@@ -249,29 +136,6 @@ const DateRecordsPage: React.FC = () => {
       dispatch(action.dateCardsSlice.setLoading(false));
     }
   };
-
-  // const handleAddTestCards = async () => {
-  //   try {
-  //     dispatch(action.dateCardsSlice.setLoading(true));
-  //     await addDefaultCards(); // Ваша функция добавления тестовых карточек
-
-  //     // Перезагружаем данные
-  //     const [defaultCards, customCards] = await Promise.all([
-  //       getDefaultDateCards(),
-  //       coupleId ? getCoupleDateCards(coupleId) : Promise.resolve([])
-  //     ]);
-
-  //     dispatch(action.dateCardsSlice.setDefaultCards(defaultCards));
-  //     dispatch(action.dateCardsSlice.setCustomCards(customCards));
-
-  //     message.success('Тестовые карточки добавлены');
-  //   } catch (error) {
-  //     console.error('Error adding test cards:', error);
-  //     message.error('Ошибка при добавлении тестовых карточек');
-  //   } finally {
-  //     dispatch(action.dateCardsSlice.setLoading(false));
-  //   }
-  // };
 
   const columns = [
     {
@@ -332,15 +196,6 @@ const DateRecordsPage: React.FC = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Card title="Управление карточками свиданий" style={{ marginBottom: 24 }}>
-        {/* <Button 
-            type="primary" 
-            onClick={handleAddTestCards}
-            style={{ marginBottom: 24 }}
-            disabled={loading}
-          >
-            Добавить тестовые карточки (временная функция)
-          </Button> */}
-
         <Table
           columns={columns}
           dataSource={allCards}
