@@ -1,16 +1,15 @@
-import { message } from 'antd';
-import { getDateCard, getEventsByUserId } from '../api/firebase/firebase';
-import { CalendarEventType, TimeSlot } from '../types/calendar';
+import { message } from "antd";
+import { getDateCard, getEventsByUserId } from "../api/firebase/firebase";
+import { CalendarEventType, TimeSlot } from "../types/calendar";
 
 export const findAvailableSlot = async (
   matchedCardId: string,
   userIds: string[]
 ): Promise<TimeSlot | null> => {
   try {
-
     const event = await getDateCard(matchedCardId);
     if (!event?.durationMinutes) {
-      message.error('Не удалось получить данные о мероприятии');
+      message.error("Не удалось получить данные о мероприятии");
       return null;
     }
 
@@ -21,7 +20,7 @@ export const findAvailableSlot = async (
 
     const [user1Events, user2Events] = await Promise.all([
       getEventsByUserId(userIds[0]),
-      getEventsByUserId(userIds[1])
+      getEventsByUserId(userIds[1]),
     ]);
 
     //первый доступный слот
@@ -33,7 +32,7 @@ export const findAvailableSlot = async (
       //с 9 00 текущего дня
       const dayStart = new Date(day);
       dayStart.setHours(9, 0, 0, 0);
-      
+
       //в 2300
       const dayEnd = new Date(day);
       dayEnd.setHours(23, 0, 0, 0);
@@ -60,10 +59,10 @@ export const findAvailableSlot = async (
       }
     }
 
-    message.warning('Не найдено свободного времени в ближайшие 2 недели');
+    message.warning("Не найдено свободного времени в ближайшие 2 недели");
     return null;
   } catch (error) {
-    message.error('Ошибка при поиске времени для встречи');
+    message.error("Ошибка при поиске времени для встречи");
     return null;
   }
 };
@@ -73,7 +72,7 @@ const isTimeOccupied = (
   end: Date,
   events: CalendarEventType[]
 ): boolean => {
-  return events.some(event => {
+  return events.some((event) => {
     const eventStart = new Date(event.start.dateTime);
     const eventEnd = new Date(event.end.dateTime);
     return start < eventEnd && end > eventStart;

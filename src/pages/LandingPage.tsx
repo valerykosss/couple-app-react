@@ -24,8 +24,8 @@ export default function LandingPage() {
         <Content style={{ padding: "50px" }}>
           <Row gutter={64} align="middle" style={{ marginBottom: "100px" }}>
             <Col xs={24} md={10}>
-              <Title level={1}  style={{ color: "#273e54", textTransform: "uppercase", fontWeight:'bold', lineHeight: '130%', marginBottom: '30px' }}>Meet Ease –  идеальный планировщик встреч</Title>
-              <Paragraph style={{ 
+              <Title level={1} style={{ color: "#273e54", textTransform: "uppercase", fontWeight: 'bold', lineHeight: '130%', marginBottom: '30px' }}>Meet Ease –  идеальный планировщик встреч</Title>
+              <Paragraph style={{
                 fontSize: 'clamp(14px, 2vw, 15px)',
                 lineHeight: '180%'
               }}>
@@ -37,7 +37,7 @@ export default function LandingPage() {
             </Col>
           </Row>
 
-          <Title level={2} style={{ textAlign: "center", fontWeight:'bold', color: "#273e54", textTransform: "uppercase"  }}>Где используется приложение?</Title>
+          <Title level={2} style={{ textAlign: "center", fontWeight: 'bold', color: "#273e54", textTransform: "uppercase" }}>Где используется приложение?</Title>
           <Paragraph style={{ textAlign: "center", marginBottom: '50px', fontSize: 'clamp(14px, 2vw, 15px)' }}>Этот сервис полезен в разных ситуациях, когда важно найти время для свиданий, не нарушая график.</Paragraph>
           <Row gutter={[16, 16]} style={{ marginBottom: "100px" }}>
             {[
@@ -50,8 +50,8 @@ export default function LandingPage() {
                   hoverable
                   style={{
                     borderRadius: "8px",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)", 
-                    transition: "transform 0.3s ease-in-out", 
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                    transition: "transform 0.3s ease-in-out",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "scale(1.05)";
@@ -73,7 +73,7 @@ export default function LandingPage() {
               </Col>
             ))}
           </Row>
-          <Title level={2} style={{ textAlign: "center", fontWeight:'bold', color: "#273e54", textTransform: "uppercase", marginBottom: "40px" }}>Часто задаваемые вопросы</Title>
+          <Title level={2} style={{ textAlign: "center", fontWeight: 'bold', color: "#273e54", textTransform: "uppercase", marginBottom: "40px" }}>Часто задаваемые вопросы</Title>
           <Collapse accordion style={{ fontSize: 'clamp(14px, 2vw, 15px)' }} >
             {faqItems.map((item, index) => (
               <Panel header={item.question} key={index.toString()}>

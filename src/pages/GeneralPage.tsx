@@ -57,7 +57,7 @@ export default function GeneralPage() {
             <Card style={{ textAlign: "center", padding: "20px" }}>
               <PlusOutlined style={{ fontSize: "24px", color: "#1890ff" }} />
               <Title level={5}>Добавьте Вашего партнера для полноценного использования приложения</Title>
-              <Input 
+              <Input
                 placeholder="Введите email партнера"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -87,7 +87,7 @@ export default function GeneralPage() {
       </Col>
 
       <Col xs={24} sm={8} md={10} lg={12} xl={14} style={{ backgroundColor: "#f0f0f0", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-        <img src="images/1.png" alt="Romantic theme" style={{ width: "auto", height: "75%"}} />
+        <img src="images/1.png" alt="Romantic theme" style={{ width: "auto", height: "75%" }} />
       </Col>
     </Row>
   );

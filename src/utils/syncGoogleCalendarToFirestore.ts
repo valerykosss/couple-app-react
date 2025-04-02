@@ -1,20 +1,25 @@
 import { message } from "antd";
-import { createGoogleCalendarEvent, fetchGoogleCalendarEvents } from "../api/googleCalendar/googleCalendar";
-import { createEvent, deleteEvent, getEventsByUserId, updateEvent } from "../api/firebase/firebase";
+import {
+  createGoogleCalendarEvent,
+  fetchGoogleCalendarEvents,
+} from "../api/googleCalendar/googleCalendar";
+import {
+  createEvent,
+  deleteEvent,
+  getEventsByUserId,
+  updateEvent,
+} from "../api/firebase/firebase";
 import { CalendarEventType } from "../types/calendar";
 
 export function isLocalEvent(event: CalendarEventType): boolean {
-  const isGoogleEvent = (
-    event.iCalUID ||
-    event.htmlLink?.includes('google.com')
-  );
+  const isGoogleEvent = event.iCalUID || event.htmlLink?.includes("google.com");
 
   return !isGoogleEvent;
 }
 
 export function syncGoogleCalendarToFirestore() {
   return (async () => {
-    const authUser = localStorage.getItem('authUser');
+    const authUser = localStorage.getItem("authUser");
     if (!authUser) {
       message.error("Данные пользователя не найдены в localStorage.");
       return;
@@ -22,7 +27,7 @@ export function syncGoogleCalendarToFirestore() {
 
     try {
       const parsedAuthUser = JSON.parse(authUser);
-      
+
       const accessToken = parsedAuthUser.accessToken;
       const userId = parsedAuthUser.id;
 
@@ -33,10 +38,10 @@ export function syncGoogleCalendarToFirestore() {
 
       const googleEvents = await fetchGoogleCalendarEvents(accessToken);
 
-      const eventsToSave = googleEvents.map(event => ({
+      const eventsToSave = googleEvents.map((event) => ({
         ...event,
         userIds: [userId],
-        createdBy: userId
+        createdBy: userId,
       }));
 
       for (const event of eventsToSave) {
@@ -59,12 +64,12 @@ export async function migrateLocalEventsToGoogle(
     const localEvents = (await getEventsByUserId(userId)).filter(isLocalEvent);
 
     const results = await Promise.allSettled(
-      localEvents.map(async event => {
+      localEvents.map(async (event) => {
         const googleEvent = createGoogleCalendarEvent(accessToken, {
           summary: event.summary,
           start: event.start,
           end: event.end,
-          userIds: [userId]
+          userIds: [userId],
         });
         await deleteEvent(event.id);
         return { success: true };
@@ -72,18 +77,18 @@ export async function migrateLocalEventsToGoogle(
     );
 
     return {
-      success: results.some(r => r.status === 'fulfilled'),
-      migratedCount: results.filter(r => r.status === 'fulfilled').length,
+      success: results.some((r) => r.status === "fulfilled"),
+      migratedCount: results.filter((r) => r.status === "fulfilled").length,
       errors: results
-        .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-        .map(r => ({ error: r.reason.message }))
+        .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+        .map((r) => ({ error: r.reason.message })),
     };
   } catch (error: any) {
-    console.error('Migration error:', error);
+    console.error("Migration error:", error);
     return {
       success: false,
       migratedCount: 0,
-      errors: [{ error: error.message }]
+      errors: [{ error: error.message }],
     };
   }
 }

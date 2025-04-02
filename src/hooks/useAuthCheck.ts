@@ -12,14 +12,16 @@ function useAuthCheck() {
     if (userData) {
       const parsedUserData = JSON.parse(userData);
 
-      dispatch(action.authSlice.initUser({
-        firebaseToken: parsedUserData.firebaseToken,
-        email: parsedUserData.email,
-        id: parsedUserData.id,
-        accessToken: parsedUserData.accessToken || null,
-        refreshToken: parsedUserData.refreshToken || null,
-        tokenExpiresIn: parsedUserData.tokenExpiresIn || null,
-      }));
+      dispatch(
+        action.authSlice.initUser({
+          firebaseToken: parsedUserData.firebaseToken,
+          email: parsedUserData.email,
+          id: parsedUserData.id,
+          accessToken: parsedUserData.accessToken || null,
+          refreshToken: parsedUserData.refreshToken || null,
+          tokenExpiresIn: parsedUserData.tokenExpiresIn || null,
+        })
+      );
     }
 
     setLoading(false);

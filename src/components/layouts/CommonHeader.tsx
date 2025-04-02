@@ -30,20 +30,20 @@ export default function CommonHeader() {
   };
 
   const handleLogin = () => {
-    dispatch(action.uiSlice.setAuthModalOpen(true)); 
+    dispatch(action.uiSlice.setAuthModalOpen(true));
   };
 
   const handleLogout = async () => {
     const auth = getAuth();
     try {
       dispatch(action.uiSlice.setLoggingOut(true));
-      
+
       await signOut(auth);
-  
+
       localStorage.removeItem("authUser");
       dispatch(action.authSlice.removeUser());
       dispatch(action.uiSlice.setAuthModalOpen(false));
-  
+
       //тут не убирать!
       navigate("/", { replace: true });
       message.success("Вы успешно вышли из системы!");
@@ -55,18 +55,18 @@ export default function CommonHeader() {
   return (
     <>
       <Header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Link to="/" style={{ 
+        <Link to="/" style={{
           display: "flex",
           alignItems: "center",
           height: "100%"
         }}>
-          <img 
-            src="/images/logo.png" 
+          <img
+            src="/images/logo.png"
             alt="Главная"
             style={{
-              height: "48px", 
+              height: "48px",
               width: "auto",
-              display: "block" 
+              display: "block"
             }}
           />
         </Link>

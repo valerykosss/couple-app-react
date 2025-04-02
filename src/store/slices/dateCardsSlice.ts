@@ -1,6 +1,6 @@
 // dateCardsSlice.ts
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { DateCardType } from '../../types/dateCards';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { DateCardType } from "../../types/dateCards";
 
 type DateCardsState = {
   defaultCards: DateCardType[];
@@ -15,11 +15,11 @@ const initialState: DateCardsState = {
   customCards: [],
   activeCardIds: [],
   loading: false,
-  error: null
+  error: null,
 };
 
 const dateCardsSlice = createSlice({
-  name: 'dateCards',
+  name: "dateCards",
   initialState,
   reducers: {
     setDefaultCards(state, action: PayloadAction<DateCardType[]>) {
@@ -40,10 +40,10 @@ const dateCardsSlice = createSlice({
     toggleCardActive(state, action: PayloadAction<string>) {
       const cardId = action.payload;
       state.activeCardIds = state.activeCardIds.includes(cardId)
-        ? state.activeCardIds.filter(id => id !== cardId)
+        ? state.activeCardIds.filter((id) => id !== cardId)
         : [...state.activeCardIds, cardId];
-    }
-  }
+    },
+  },
 });
 
 export default dateCardsSlice;

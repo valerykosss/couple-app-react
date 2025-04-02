@@ -24,17 +24,20 @@ import { CalendarEventType, TimeSlot } from "../../types/calendar";
 import { message } from "antd";
 import { action, AppDispatch } from "../../store";
 import { Action, AnyAction } from "@reduxjs/toolkit";
-import { ActiveCoupleCards, DateCardType, SwipeSessionType} from "../../types/dateCards";
-
+import {
+  ActiveCoupleCards,
+  DateCardType,
+  SwipeSessionType,
+} from "../../types/dateCards";
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain:  process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  databaseURL:  process.env.REACT_APP_FIREBASE_DATABASE_URL,
-  projectId:  process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket:  process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId:  process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId:  process.env.REACT_APP_FIREBASE_APP_ID
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -48,18 +51,24 @@ function converter<T extends DocumentData>(): FirestoreDataConverter<T> {
       ...snap.data(),
       id: snap.id,
     }),
-  }
+  };
 }
 
 //создаёт ссылку на коллекцию в Firestore с применением конвертера
 //получает path – основной путь("users"), pathSegments – дополнительные сегменты (например в users/{userId}/todos)
-function dataPoint<T extends DocumentData>(path: string, ...pathSegments: string[]) {
-  return collection(db, path, ...pathSegments).withConverter(converter<T>())
+function dataPoint<T extends DocumentData>(
+  path: string,
+  ...pathSegments: string[]
+) {
+  return collection(db, path, ...pathSegments).withConverter(converter<T>());
 }
 
-//создаёт ссылку на документ (вместо коллекции), path – основной путь (например, "users"). pathSegments – ID документа. 
-function dataPointForOne<T extends DocumentData>(path: string, ...pathSegments: string[]) {
-  return doc(db, path, ...pathSegments).withConverter(converter<T>())
+//создаёт ссылку на документ (вместо коллекции), path – основной путь (например, "users"). pathSegments – ID документа.
+function dataPointForOne<T extends DocumentData>(
+  path: string,
+  ...pathSegments: string[]
+) {
+  return doc(db, path, ...pathSegments).withConverter(converter<T>());
 }
 
 export type FirebaseUserType = {
@@ -70,7 +79,7 @@ export type FirebaseUserType = {
   accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresIn: string | null;
-}
+};
 
 export type CoupleType = {
   id: string;
@@ -81,54 +90,60 @@ export type CoupleType = {
 
 const dataPoints = {
   //ссылка на всех пользователей
-  users: dataPoint<FirebaseUserType>('users'),
+  users: dataPoint<FirebaseUserType>("users"),
   //ссылка на одного пользователя
-  userDoc: (userId: string) => dataPointForOne<FirebaseUserType>('users', userId),
+  userDoc: (userId: string) =>
+    dataPointForOne<FirebaseUserType>("users", userId),
   //на коллекцию событий
-  events: dataPoint<CalendarEventType>('events'),
+  events: dataPoint<CalendarEventType>("events"),
   //на одно событие
-  eventDoc: (eventId: string) => dataPointForOne<CalendarEventType>('events', eventId),
-  //пары 
-  couples: dataPoint<CoupleType>('couples'),
-  coupleDoc: (coupleId: string) => dataPointForOne<CoupleType>('couples', coupleId),
+  eventDoc: (eventId: string) =>
+    dataPointForOne<CalendarEventType>("events", eventId),
+  //пары
+  couples: dataPoint<CoupleType>("couples"),
+  coupleDoc: (coupleId: string) =>
+    dataPointForOne<CoupleType>("couples", coupleId),
   //все карточки свиданий
-  dateCards: dataPoint<DateCardType>('dateCards'),
-  dateCardDoc: (cardId: string) => dataPointForOne<DateCardType>('dateCards', cardId),
+  dateCards: dataPoint<DateCardType>("dateCards"),
+  dateCardDoc: (cardId: string) =>
+    dataPointForOne<DateCardType>("dateCards", cardId),
   //активные карточки
-  activeCoupleCards: dataPoint<ActiveCoupleCardsType>('activeCoupleCards'),
-  activeCoupleCardsDoc: (id: string) => dataPointForOne<ActiveCoupleCardsType>('activeCoupleCards', id),
+  activeCoupleCards: dataPoint<ActiveCoupleCardsType>("activeCoupleCards"),
+  activeCoupleCardsDoc: (id: string) =>
+    dataPointForOne<ActiveCoupleCardsType>("activeCoupleCards", id),
   //сессии свайпов
-  swipeSessions: dataPoint<SwipeSessionType>('swipeSessions'),
-  swipeSessionDoc: (id: string) => dataPointForOne<SwipeSessionType>('swipeSessions', id),
-  //запланированные свидания 
-  scheduledDates: dataPoint<ScheduledDateType>('scheduledDates'),
-  scheduledDateDoc: (id: string) => dataPointForOne<ScheduledDateType>('scheduledDates', id),
+  swipeSessions: dataPoint<SwipeSessionType>("swipeSessions"),
+  swipeSessionDoc: (id: string) =>
+    dataPointForOne<SwipeSessionType>("swipeSessions", id),
+  //запланированные свидания
+  scheduledDates: dataPoint<ScheduledDateType>("scheduledDates"),
+  scheduledDateDoc: (id: string) =>
+    dataPointForOne<ScheduledDateType>("scheduledDates", id),
 
-  coupleDateCards: (coupleId: string) => query(
-    dataPoint<DateCardType>('dateCards'),
-    where('coupleId', '==', coupleId)
-  ),
-  activeCoupleCardsForCouple: (coupleId: string) => query(
-    dataPoint<ActiveCoupleCardsType>('activeCoupleCards'),
-    where('coupleId', '==', coupleId)
-  ),
-  activeSwipeSessionsForCouple: (coupleId: string) => query(
-    dataPoint<SwipeSessionType>('swipeSessions'),
-    where('coupleId', '==', coupleId),
-    where('status', '==', 'active')
-  ),
-  scheduledDatesForCouple: (coupleId: string) => query(
-    dataPoint<ScheduledDateType>('scheduledDates'),
-    where('coupleId', '==', coupleId)
-  ),
-}
+  coupleDateCards: (coupleId: string) =>
+    query(
+      dataPoint<DateCardType>("dateCards"),
+      where("coupleId", "==", coupleId)
+    ),
+  activeCoupleCardsForCouple: (coupleId: string) =>
+    query(
+      dataPoint<ActiveCoupleCardsType>("activeCoupleCards"),
+      where("coupleId", "==", coupleId)
+    ),
+  activeSwipeSessionsForCouple: (coupleId: string) =>
+    query(
+      dataPoint<SwipeSessionType>("swipeSessions"),
+      where("coupleId", "==", coupleId),
+      where("status", "==", "active")
+    ),
+  scheduledDatesForCouple: (coupleId: string) =>
+    query(
+      dataPoint<ScheduledDateType>("scheduledDates"),
+      where("coupleId", "==", coupleId)
+    ),
+};
 
 //USER
-//все пользователи
-export async function getUsers() {
-  const usersSnapshot = await getDocs(dataPoints.users);
-  return usersSnapshot.docs.map(item => item.data());
-}
 
 //один пользователь
 export async function getUser(userId: string) {
@@ -136,7 +151,7 @@ export async function getUser(userId: string) {
   return usersSnapshot.data();
 }
 
-//не полностью можно передавать 
+//не полностью можно передавать
 export async function createUser(user: Partial<FirebaseUserType>) {
   const userId = user.id || v4();
   await setDoc(dataPoints.userDoc(userId), user);
@@ -145,12 +160,17 @@ export async function createUser(user: Partial<FirebaseUserType>) {
 }
 
 async function findUserDocIdByUserId(userId: string) {
-  const usersSnapshot = await getDocs(query(dataPoints.users, where("id", "==", userId)));
-  if (usersSnapshot.empty) return null; 
+  const usersSnapshot = await getDocs(
+    query(dataPoints.users, where("id", "==", userId))
+  );
+  if (usersSnapshot.empty) return null;
   return usersSnapshot.docs[0].id;
 }
 
-export async function updateUser(userId: string, user: Partial<FirebaseUserType>) {
+export async function updateUser(
+  userId: string,
+  user: Partial<FirebaseUserType>
+) {
   const userDocId = await findUserDocIdByUserId(userId);
   if (!userDocId) {
     console.error(`Пользователь с UID ${userId} не найден в Firestore`);
@@ -168,7 +188,9 @@ export async function getEventById(eventId: string) {
   return eventSnapshot.data();
 }
 
-export async function getEventsByUserId(userId: string): Promise<CalendarEventType[]> {
+export async function getEventsByUserId(
+  userId: string
+): Promise<CalendarEventType[]> {
   try {
     const eventsQuery = query(
       dataPoints.events,
@@ -177,7 +199,7 @@ export async function getEventsByUserId(userId: string): Promise<CalendarEventTy
 
     const querySnapshot = await getDocs(eventsQuery);
 
-    return querySnapshot.docs.map(doc => doc.data());
+    return querySnapshot.docs.map((doc) => doc.data());
   } catch (error) {
     console.error("Ошибка при получении событий пользователя:", error);
     message.error("Не удалось загрузить события");
@@ -185,81 +207,63 @@ export async function getEventsByUserId(userId: string): Promise<CalendarEventTy
   }
 }
 
-const getBothUsersEvents = async (userIds: string[], timeMin: Date, timeMax: Date) => {
-  const [currentUserEvents, partnerEvents] = await Promise.all([
-    getEventsByUserId(userIds[0]),
-    getEventsByUserId(userIds[1])
-  ]);
-  
-  return {
-    currentUserEvents: filterEventsByDateRange(currentUserEvents, timeMin, timeMax),
-    partnerEvents: filterEventsByDateRange(partnerEvents, timeMin, timeMax)
-  };
-};
-
-const filterEventsByDateRange = (events: CalendarEventType[], start: Date, end: Date) => {
-  return events.filter(event => {
-    const eventStart = new Date(event.start.dateTime);
-    const eventEnd = new Date(event.end.dateTime);
-    return eventStart < end && eventEnd > start;
-  });
-};
-
 export const createJointEvent = async ({
   event,
   slot,
-  userIds
+  userIds,
 }: {
   event: DateCardType;
   slot: TimeSlot;
   userIds: string[];
 }) => {
-  const newEvent: Omit<CalendarEventType, 'id'> = {
+  const newEvent: Omit<CalendarEventType, "id"> = {
     summary: `Совместное: ${event.title}`,
-    description: `Автоматически создано на основе совпадения\n${event.description || ''}`,
+    description: `Автоматически создано на основе совпадения\n${
+      event.description || ""
+    }`,
     start: {
       dateTime: slot.start.toISOString(),
-      timeZone: 'Europe/Moscow'
+      timeZone: "Europe/Moscow",
     },
     end: {
       dateTime: slot.end.toISOString(),
-      timeZone: 'Europe/Moscow'
+      timeZone: "Europe/Moscow",
     },
     userIds,
     createdAt: new Date().toISOString(),
-    status: 'confirmed',
+    status: "confirmed",
     organizer: {
       email: `${userIds[0]}@yourdomain.com`,
-      self: true
+      self: true,
     },
     extendedProperties: {
       private: {
-        createdFrom: 'swipe-session',
-        originalCardId: event.id
-      }
-    }
+        createdFrom: "swipe-session",
+        originalCardId: event.id,
+      },
+    },
   };
 
-  const docRef = await addDoc(collection(db, 'events'), newEvent);
+  const docRef = await addDoc(collection(db, "events"), newEvent);
   return docRef.id;
 };
 
 export async function createEvent(event: CalendarEventType) {
-  const eventId = event.id || event.htmlLink?.split('/').pop() || v4();
-  
+  const eventId = event.id || event.htmlLink?.split("/").pop() || v4();
+
   const existingEvent = await getEventById(eventId);
-  
+
   if (!event.createdBy) {
     throw new Error("Для создания события required поле createdBy");
   }
 
   if (existingEvent) {
     const existingUserIds = existingEvent.userIds || [];
-    
+
     if (!existingUserIds.includes(event.createdBy)) {
       await updateDoc(dataPoints.eventDoc(eventId), {
         userIds: [...existingUserIds, event.createdBy],
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
     }
     return eventId;
@@ -268,55 +272,61 @@ export async function createEvent(event: CalendarEventType) {
   await setDoc(dataPoints.eventDoc(eventId), {
     ...event,
     id: eventId,
-    userIds: [event.createdBy], 
+    userIds: [event.createdBy],
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   });
 
   return eventId;
 }
 
-export async function updateEvent(eventId: string, updatedEvent: Partial<CalendarEventType>) {
+export async function updateEvent(
+  eventId: string,
+  updatedEvent: Partial<CalendarEventType>
+) {
   await updateDoc(dataPoints.eventDoc(eventId), updatedEvent);
 }
 
 export async function deleteEvent(eventId: string) {
   const docRef = dataPoints.eventDoc(eventId);
   const docSnap = await getDoc(docRef);
-  
+
   if (!docSnap.exists()) {
     throw new Error(`Событие с ID ${eventId} не найдено в Firestore`);
   }
-  
+
   await deleteDoc(docRef);
 }
 
 export function subscribeToUserEvents(
   userId: string,
   dispatch: AppDispatch,
-  actionCreator: (events: CalendarEventType[]) => Action 
+  actionCreator: (events: CalendarEventType[]) => Action
 ) {
-  const q = query(collection(db, "events"), where("userIds", "array-contains", userId));
-  
+  const q = query(
+    collection(db, "events"),
+    where("userIds", "array-contains", userId)
+  );
+
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const events = snapshot.docs.map(doc => doc.data() as CalendarEventType);
+    const events = snapshot.docs.map((doc) => doc.data() as CalendarEventType);
     dispatch(actionCreator(events));
   });
 
   return unsubscribe;
 }
 
-//COUPLES 
+//COUPLES
 
 export async function createCouple(userId: string) {
   const coupleId = v4();
   const now = new Date().toISOString();
-  
+
   await setDoc(dataPoints.coupleDoc(coupleId), {
     id: coupleId,
     usersId: [userId],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   });
 
   return coupleId;
@@ -330,7 +340,7 @@ export async function getCoupleById(coupleId: string) {
 export async function addUserToCouple(coupleId: string, userId: string) {
   const couple = await getCoupleById(coupleId);
   if (!couple) {
-    throw new Error('Пара не найдена');
+    throw new Error("Пара не найдена");
   }
 
   if (couple.usersId.includes(userId)) {
@@ -339,24 +349,24 @@ export async function addUserToCouple(coupleId: string, userId: string) {
 
   await updateDoc(dataPoints.coupleDoc(coupleId), {
     usersId: [...couple.usersId, userId],
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   });
 }
 
 export async function getCoupleByUserIds(userIds: string[]) {
   if (userIds.length !== 2) {
-    throw new Error('Необходимо передать ровно два ID пользователя');
+    throw new Error("Необходимо передать ровно два ID пользователя");
   }
 
   try {
     //пары, где есть первый пользователь
     const couplesQuery = query(
       dataPoints.couples,
-      where('usersId', 'array-contains', userIds[0])
+      where("usersId", "array-contains", userIds[0])
     );
-    
+
     const snapshot = await getDocs(couplesQuery);
-    
+
     //проверяем, есть ли среди этих пар та, где есть второй пользователь
     for (const doc of snapshot.docs) {
       const couple = doc.data();
@@ -364,11 +374,11 @@ export async function getCoupleByUserIds(userIds: string[]) {
         return couple;
       }
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Error finding couple by user IDs:', error);
-    throw new Error('Ошибка при поиске пары');
+    console.error("Error finding couple by user IDs:", error);
+    throw new Error("Ошибка при поиске пары");
   }
 }
 
@@ -380,28 +390,31 @@ export async function getUserCouples(userId: string) {
     );
 
     const querySnapshot = await getDocs(couplesQuery);
-    return querySnapshot.docs.map(doc => doc.data());
+    return querySnapshot.docs.map((doc) => doc.data());
   } catch (error) {
-    console.error('Error getting user couples:', error);
-    throw new Error('Ошибка при получении пар пользователя');
+    console.error("Error getting user couples:", error);
+    throw new Error("Ошибка при получении пар пользователя");
   }
 }
 
-export async function updateCouple(coupleId: string, updates: Partial<Omit<CoupleType, 'id'>>) {
+export async function updateCouple(
+  coupleId: string,
+  updates: Partial<Omit<CoupleType, "id">>
+) {
   await updateDoc(dataPoints.coupleDoc(coupleId), {
     ...updates,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   });
 }
 
 export async function deleteCouple(coupleId: string) {
   const docRef = dataPoints.coupleDoc(coupleId);
   const docSnap = await getDoc(docRef);
-  
+
   if (!docSnap.exists()) {
-    throw new Error(`Пара с ID ${coupleId} не найдена`);
+    throw new Error(`Пара с id ${coupleId} не найдена`);
   }
-  
+
   await deleteDoc(docRef);
 }
 
@@ -412,8 +425,8 @@ export function subscribeToUserCouples(userId: string, dispatch: AppDispatch) {
   );
 
   const unsubscribe = onSnapshot(couplesQuery, (snapshot) => {
-    const couples = snapshot.docs.map(doc => doc.data());
-    // dispatch(action.couplesSlice.setCouples(couples)); сделать 
+    const couples = snapshot.docs.map((doc) => doc.data());
+    // dispatch(action.couplesSlice.setCouples(couples)); сделать
   });
 
   return unsubscribe;
@@ -431,7 +444,7 @@ export type ScheduledDateType = {
   coupleId: string;
   dateCardId: string;
   proposedTime: string;
-  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled';
+  status: "pending" | "confirmed" | "rejected" | "cancelled";
   userResponses: {
     [userId: string]: boolean | null;
   };
@@ -440,22 +453,22 @@ export type ScheduledDateType = {
 
 //DATE CARDS OPERATIONS
 
-export async function createDateCard(card: Omit<DateCardType, 'id' | 'createdAt' | 'updatedAt'>) {
+export async function createDateCard(
+  card: Omit<DateCardType, "id" | "createdAt" | "updatedAt">
+) {
   const cardId = v4();
   const now = new Date().toISOString();
-  
-  // Валидация для custom карточек
-  if (card.type === 'custom' && !card.coupleId) {
-    throw new Error('Для custom карточек обязателен coupleId');
+
+  if (card.type === "custom" && !card.coupleId) {
+    throw new Error("Для custom карточек обязателен coupleId");
   }
 
-  // Подготовка данных карточки
   const cardData = {
     ...card,
     id: cardId,
     createdAt: now,
     updatedAt: now,
-    coupleId: card.type === 'default' ? null : card.coupleId // Устанавливаем null для default
+    coupleId: card.type === "default" ? null : card.coupleId,
   };
 
   await setDoc(dataPoints.dateCardDoc(cardId), cardData);
@@ -463,31 +476,26 @@ export async function createDateCard(card: Omit<DateCardType, 'id' | 'createdAt'
   return cardId;
 }
 
-export const getDateCard = async (cardId: string): Promise<DateCardType | null> => {
+export const getDateCard = async (cardId: string) => {
   try {
-    const docRef = doc(db, 'dateCards', cardId);
+    const docRef = doc(db, "dateCards", cardId);
     const snapshot = await getDoc(docRef);
-    return snapshot.exists() ? snapshot.data() as DateCardType : null;
+    return snapshot.exists() ? (snapshot.data() as DateCardType) : null;
   } catch (error) {
-    console.error('Error getting date card:', error);
+    console.error("Error getting date card:", error);
     throw error;
   }
 };
 
-
 export async function getDefaultDateCards() {
   try {
-    // Создаем запрос для получения всех карточек с type = 'default'
     const defaultCardsQuery = query(
       dataPoints.dateCards,
-      where('type', '==', 'default')
+      where("type", "==", "default")
     );
-
-    // Выполняем запрос
     const querySnapshot = await getDocs(defaultCardsQuery);
 
-    // Преобразуем результат в массив DateCardType
-    const defaultCards = querySnapshot.docs.map(doc => {
+    const defaultCards = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -495,30 +503,23 @@ export async function getDefaultDateCards() {
         description: data.description,
         imageUrl: data.imageUrl,
         durationMinutes: data.durationMinutes,
-        type: 'default' as const,
-        coupleId: null, // Для default карточек всегда null
+        type: "default" as const,
+        coupleId: null, //для default карточек всегда null
         createdAt: data.createdAt,
-        updatedAt: data.updatedAt
+        updatedAt: data.updatedAt,
       };
     });
 
     return defaultCards;
   } catch (error) {
-    console.error('Error getting default date cards:', error);
-    throw new Error('Не удалось загрузить стандартные карточки');
+    console.error("Ошибка загрузки карточек стандартных:", error);
+    throw new Error("Не удалось загрузить стандартные карточки");
   }
 }
 
 export async function getCoupleDateCards(coupleId: string) {
   const snapshot = await getDocs(dataPoints.coupleDateCards(coupleId));
-  return snapshot.docs.map(doc => doc.data());
-}
-
-export async function updateDateCard(cardId: string, updates: Partial<Omit<DateCardType, 'id'>>) {
-  await updateDoc(dataPoints.dateCardDoc(cardId), {
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  });
+  return snapshot.docs.map((doc) => doc.data());
 }
 
 export async function deleteDateCard(cardId: string) {
@@ -527,25 +528,32 @@ export async function deleteDateCard(cardId: string) {
 
 //ACTIVE COUPLE CARDS OPERATIONS
 
-export const getActiveCoupleCards = async (coupleId: string): Promise<ActiveCoupleCards | null> => {
+export const getActiveCoupleCards = async (
+  coupleId: string
+): Promise<ActiveCoupleCards | null> => {
   try {
     const q = query(
-      collection(db, 'activeCoupleCards'),
-      where('coupleId', '==', coupleId),
+      collection(db, "activeCoupleCards"),
+      where("coupleId", "==", coupleId),
       limit(1)
     );
     const snapshot = await getDocs(q);
-    return snapshot.empty ? null : snapshot.docs[0].data() as ActiveCoupleCards;
+    return snapshot.empty
+      ? null
+      : (snapshot.docs[0].data() as ActiveCoupleCards);
   } catch (error) {
-    console.error('Error getting active cards:', error);
+    console.error("ошибка получения активных карточек:", error);
     throw error;
   }
 };
 
-export async function createActiveCoupleCards(coupleId: string, cardIds: string[]) {
+export async function createActiveCoupleCards(
+  coupleId: string,
+  cardIds: string[]
+) {
   const id = v4();
   const now = new Date().toISOString();
-  
+
   await setDoc(dataPoints.activeCoupleCardsDoc(id), {
     id,
     coupleId,
@@ -565,80 +573,87 @@ export async function updateActiveCoupleCards(id: string, cardIds: string[]) {
 
 //SWIPE SESSIONS OPERATIONS
 
-export const createSwipeSession= async (
-  params: Omit<SwipeSessionType, 'id'>
+export const createSwipeSession = async (
+  params: Omit<SwipeSessionType, "id">
 ): Promise<SwipeSessionType> => {
   try {
     const sessionId = `${params.coupleId}_${Date.now()}`;
     const now = new Date().toISOString();
-    
-    const sessionData: SwipeSessionType= {
+
+    const sessionData: SwipeSessionType = {
       id: sessionId,
       ...params,
-      status: 'active',
+      status: "active",
       createdAt: now,
       updatedAt: now,
       completedUserIds: [],
       matchedCards: [],
-      swipes: {}
+      swipes: {},
     };
 
-    await setDoc(doc(db, 'swipeSessions', sessionId), sessionData);
+    await setDoc(doc(db, "swipeSessions", sessionId), sessionData);
     return sessionData;
   } catch (error) {
-    console.error('Error creating swipe session:', error);
+    console.error("Error creating swipe session:", error);
     throw error;
   }
 };
 
-export const getActiveSwipeSession = async (coupleId: string): Promise<SwipeSessionType| null> => {
+export const getActiveSwipeSession = async (
+  coupleId: string
+): Promise<SwipeSessionType | null> => {
   try {
     const q = query(
-      collection(db, 'swipeSessions'),
-      where('coupleId', '==', coupleId),
-      where('status', '==', 'active'),
+      collection(db, "swipeSessions"),
+      where("coupleId", "==", coupleId),
+      where("status", "==", "active"),
       limit(1)
     );
     const snapshot = await getDocs(q);
-    return snapshot.empty ? null : snapshot.docs[0].data() as SwipeSessionType;
+    return snapshot.empty
+      ? null
+      : (snapshot.docs[0].data() as SwipeSessionType);
   } catch (error) {
-    console.error('Error getting active session:', error);
+    console.error("Error getting active session:", error);
     throw error;
   }
 };
 
-export const getLatestSwipeSession = async (coupleId: string): Promise<SwipeSessionType | null> => {
+export const getLatestSwipeSession = async (
+  coupleId: string
+): Promise<SwipeSessionType | null> => {
   try {
-    const sessionsRef = collection(db, 'swipeSessions');
-    // Только фильтр по coupleId (не требует составного индекса)
-    const q = query(
-      sessionsRef,
-      where('coupleId', '==', coupleId)
-    );
+    const sessionsRef = collection(db, "swipeSessions");
+    const q = query(sessionsRef, where("coupleId", "==", coupleId));
 
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) return null;
 
-    const sessions = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as SwipeSessionType));
+    const sessions = querySnapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as SwipeSessionType)
+    );
 
-    const activeSessions = sessions.filter(session => session.status === 'active');
+    const activeSessions = sessions.filter(
+      (session) => session.status === "active"
+    );
 
-    const sortedSessions = activeSessions.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    const sortedSessions = activeSessions.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
     return sortedSessions[0] || null;
-
   } catch (error) {
-    console.error('[getLatestSwipeSession] Error:', error);
+    console.error("getLatestSwipeSession ошибка:", error);
     return null;
   }
 };
 
-///////СЛОТЫЫЫЫЫЫ
+//SLOTS
 export const findAndUpdateMatches = async (
   sessionId: string
 ): Promise<{
@@ -646,21 +661,21 @@ export const findAndUpdateMatches = async (
   userIds: string[];
 } | null> => {
   try {
-    const sessionRef = doc(db, 'swipeSessions', sessionId);
+    const sessionRef = doc(db, "swipeSessions", sessionId);
     const sessionSnap = await getDoc(sessionRef);
-    
+
     if (!sessionSnap.exists()) {
-      throw new Error(`Session ${sessionId} not found`);
+      throw new Error(`сессия ${sessionId} не найдена`);
     }
 
     const session = sessionSnap.data() as SwipeSessionType;
-    
+
     if (!session.completedUserIds || !session.swipes) {
-      throw new Error('Invalid session structure');
+      throw new Error("не валидная сессия");
     }
 
     if (session.completedUserIds.length < 2) {
-      console.debug('Not all users completed swipes');
+      console.debug("не все закончили свайпать");
       return null;
     }
 
@@ -669,38 +684,37 @@ export const findAndUpdateMatches = async (
     const user2Choices = session.swipes[user2Id]?.chosenActiveCards || [];
 
     const user2ChoicesSet = new Set(user2Choices);
-    const matchedCards = user1Choices.filter(cardId => 
+    const matchedCards = user1Choices.filter((cardId) =>
       user2ChoicesSet.has(cardId)
     );
 
-    const newStatus = matchedCards.length > 0 
-      ? 'matchesFound' 
-      : 'noMatchesFound';
+    const newStatus =
+      matchedCards.length > 0 ? "matchesFound" : "noMatchesFound";
 
     const updateData: Partial<SwipeSessionType> = {
       matchedCards,
       status: newStatus,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
-    console.log(`Updating session ${sessionId} with:`, {
+    console.log(`обновление сессии ${sessionId}:`, {
       matchesCount: matchedCards.length,
-      newStatus
+      newStatus,
     });
 
     await updateDoc(sessionRef, updateData);
 
     return {
       matchedCards,
-      userIds: session.completedUserIds
-    }
+      userIds: session.completedUserIds,
+    };
   } catch (error) {
-    console.error(`Failed to process matches for session ${sessionId}:`, error);
-    
+    console.error(`нету мэтчей по сессии ${sessionId}:`, error);
+
     if (error instanceof FirebaseError) {
-      throw new Error('Database error: ' + error.message);
+      throw new Error("ошибка бд: " + error.message);
     }
-    
+
     throw error;
   }
 };
@@ -712,16 +726,15 @@ export const updateUserSwipes = async (
   declinedCards: string[]
 ): Promise<void> => {
   try {
-    const sessionRef = doc(db, 'swipeSessions', sessionId);
+    const sessionRef = doc(db, "swipeSessions", sessionId);
     const sessionSnap = await getDoc(sessionRef);
 
     if (!sessionSnap.exists()) {
-      throw new Error(`Session with ID ${sessionId} not found`);
+      throw new Error(`сессия ${sessionId} не найдена`);
     }
 
     const sessionData = sessionSnap.data() as SwipeSessionType;
 
-    // Проверяем, есть ли записи о свайпах пользователя
     const userSwipes = sessionData.swipes?.[userId] || {
       chosenActiveCards: [],
       declinedActiveCards: [],
@@ -730,14 +743,20 @@ export const updateUserSwipes = async (
     const updates: Partial<SwipeSessionType> = {
       updatedAt: new Date().toISOString(),
       [`swipes.${userId}`]: {
-        chosenActiveCards: arrayUnion(...(userSwipes.chosenActiveCards || []), ...chosenCards),
-        declinedActiveCards: arrayUnion(...(userSwipes.declinedActiveCards || []), ...declinedCards),
+        chosenActiveCards: arrayUnion(
+          ...(userSwipes.chosenActiveCards || []),
+          ...chosenCards
+        ),
+        declinedActiveCards: arrayUnion(
+          ...(userSwipes.declinedActiveCards || []),
+          ...declinedCards
+        ),
       },
     };
 
     await updateDoc(sessionRef, updates);
   } catch (error) {
-    console.error('Error updating swipes:', error);
+    console.error("ошибка обновления свайпов", error);
     throw error;
   }
 };
@@ -747,43 +766,31 @@ export const markUserCompletedSwipes = async (
   userId: string
 ): Promise<void> => {
   try {
-    await updateDoc(doc(db, 'swipeSessions', sessionId), {
+    await updateDoc(doc(db, "swipeSessions", sessionId), {
       completedUserIds: arrayUnion(userId),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error marking user completed:', error);
+    console.error("ошибка при markUserCompletedSwipes:", error);
     throw error;
   }
 };
 
-export async function updateMatchedCards(sessionId: string, matchedCards: string[]) {
-  await updateDoc(dataPoints.swipeSessionDoc(sessionId), {
-    matchedCards,
-    updatedAt: new Date().toISOString(),
-  });
-}
-
-export async function completeSwipeSession(sessionId: string) {
-  await updateDoc(dataPoints.swipeSessionDoc(sessionId), {
-    status: 'completed',
-    updatedAt: new Date().toISOString(),
-  });
-}
-
-export const getArchivedSwipeSessions = async (coupleId: string): Promise<SwipeSessionType[]> => {
+export const getArchivedSwipeSessions = async (
+  coupleId: string
+): Promise<SwipeSessionType[]> => {
   try {
     const q = query(
-      collection(db, 'swipeSessions'),
-      where('coupleId', '==', coupleId),
-      where('status', '==', 'archived')
+      collection(db, "swipeSessions"),
+      where("coupleId", "==", coupleId),
+      where("status", "==", "archived")
     );
     const snapshot = await getDocs(q);
-    const sessions = snapshot.docs.map(doc => doc.data() as SwipeSessionType);
+    const sessions = snapshot.docs.map((doc) => doc.data() as SwipeSessionType);
 
     return sessions;
   } catch (error) {
-    console.error('Error getting archived sessions:', error);
+    console.error("Error getting archived sessions:", error);
     return [];
   }
 };
@@ -798,7 +805,7 @@ export async function createScheduledDate(params: {
 }) {
   const id = v4();
   const now = new Date().toISOString();
-  
+
   //инициализируются ответы пользователей как null
   const userResponses = params.userIds.reduce((acc, userId) => {
     acc[userId] = null;
@@ -810,7 +817,7 @@ export async function createScheduledDate(params: {
     coupleId: params.coupleId,
     dateCardId: params.dateCardId,
     proposedTime: params.proposedTime,
-    status: 'pending',
+    status: "pending",
     userResponses,
     createdAt: now,
   });
@@ -820,7 +827,7 @@ export async function createScheduledDate(params: {
 
 export async function getScheduledDates(coupleId: string) {
   const snapshot = await getDocs(dataPoints.scheduledDatesForCouple(coupleId));
-  return snapshot.docs.map(doc => doc.data());
+  return snapshot.docs.map((doc) => doc.data());
 }
 
 export async function updateScheduledDateResponse(
@@ -831,7 +838,7 @@ export async function updateScheduledDateResponse(
   const dateRef = dataPoints.scheduledDateDoc(dateId);
   const dateSnap = await getDoc(dateRef);
 
-  if (!dateSnap.exists()) throw new Error('Свидание не найдено');
+  if (!dateSnap.exists()) throw new Error("Свидание не найдено");
 
   const updates = {
     [`userResponses.${userId}`]: response,
@@ -845,8 +852,10 @@ export async function updateScheduledDateResponse(
     [userId]: response,
   });
 
-  if (allResponses.every(val => val !== null)) {
-    updates.status = allResponses.every(val => val) ? 'confirmed' : 'rejected';
+  if (allResponses.every((val) => val !== null)) {
+    updates.status = allResponses.every((val) => val)
+      ? "confirmed"
+      : "rejected";
   }
 
   await updateDoc(dateRef, updates);
@@ -854,45 +863,34 @@ export async function updateScheduledDateResponse(
 
 export async function cancelScheduledDate(dateId: string) {
   await updateDoc(dataPoints.scheduledDateDoc(dateId), {
-    status: 'cancelled',
+    status: "cancelled",
     updatedAt: new Date().toISOString(),
   });
 }
 
 //SUBSCRIPTIONS
 
-// export const subscribeToSession = (
-//   sessionId: string,
-//   callback: (session: SwipeSessionType| null) => void
-// ) => {
-//   return onSnapshot(doc(db, 'swipeSessions', sessionId), (doc) => {
-//     callback(doc.exists() ? doc.data() as SwipeSessionType: null);
-//   });
-// };
-
 export const subscribeToSession = (
   sessionId: string,
   callback: (session: SwipeSessionType | null) => void,
-  onCompletion?: () => void // Добавляем опциональный колбэк
+  onCompletion?: () => void
 ) => {
-  return onSnapshot(doc(db, 'swipeSessions', sessionId), (doc) => {
-    const session = doc.exists() ? doc.data() as SwipeSessionType : null;
+  return onSnapshot(doc(db, "swipeSessions", sessionId), (doc) => {
+    const session = doc.exists() ? (doc.data() as SwipeSessionType) : null;
     callback(session);
-    
-    // Вызываем колбэк завершения если нужно
+
     if (session?.completedUserIds.length === 2 && onCompletion) {
       onCompletion();
     }
   });
 };
 
-
 export function subscribeToActiveCoupleCards(
   coupleId: string,
   callback: (data: ActiveCoupleCardsType | null) => void
 ) {
   const q = dataPoints.activeCoupleCardsForCouple(coupleId);
-  
+
   return onSnapshot(q, (snapshot) => {
     callback(snapshot.empty ? null : snapshot.docs[0].data());
   });
@@ -903,7 +901,7 @@ export function subscribeToActiveSwipeSession(
   callback: (session: SwipeSessionType | null) => void
 ) {
   const q = dataPoints.activeSwipeSessionsForCouple(coupleId);
-  
+
   return onSnapshot(q, (snapshot) => {
     callback(snapshot.empty ? null : snapshot.docs[0].data());
   });
@@ -914,21 +912,21 @@ export function subscribeToScheduledDates(
   callback: (dates: ScheduledDateType[]) => void
 ) {
   const q = dataPoints.scheduledDatesForCouple(coupleId);
-  
+
   return onSnapshot(q, (snapshot) => {
-    callback(snapshot.docs.map(doc => doc.data()));
+    callback(snapshot.docs.map((doc) => doc.data()));
   });
 }
 
 export const setupSessionListener = (sessionId: string) => {
-  const sessionRef = doc(db, 'swipeSessions', sessionId);
-  
+  const sessionRef = doc(db, "swipeSessions", sessionId);
+
   const unsubscribe = onSnapshot(sessionRef, async (doc) => {
     const session = doc.data() as SwipeSessionType;
-    
+
     if (!session) return;
-    
-    if (session.completedUserIds.length === 2 && session.status === 'active') {
+
+    if (session.completedUserIds.length === 2 && session.status === "active") {
       await findAndUpdateMatches(sessionId);
       unsubscribe();
     }

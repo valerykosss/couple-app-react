@@ -23,7 +23,7 @@ export function CalendarPage() {
   const modalState = useTypedSelector((state) => state.eventModalSlice);
   const [hasGoogleAuth, setHasGoogleAuth] = useState(false);
   const [showConnectCard, setShowConnectCard] = useState(false);
-  
+
   const authUser = localStorage.getItem('authUser');
   if (!authUser) {
     message.error("Не удалось найти данные пользователя.");
@@ -36,15 +36,15 @@ export function CalendarPage() {
   const refreshToken = parsedAuthUser.refreshToken;
 
   useEffect(() => {
-    let unsubscribeUser = () => {};
-    let unsubscribePartner = () => {};
-  
+    let unsubscribeUser = () => { };
+    let unsubscribePartner = () => { };
+
     const loadData = async () => {
       if (!userId) {
         message.error("Не удалось найти userId.");
         return;
       }
-  
+
       if (accessToken && refreshToken) {
         setHasGoogleAuth(true);
         setShowConnectCard(false);
@@ -54,17 +54,17 @@ export function CalendarPage() {
         setHasGoogleAuth(!!userData?.accessToken);
         setShowConnectCard(!userData?.accessToken);
       }
-  
+
       const couples = await getUserCouples(userId);
       const partnerId = couples[0]?.usersId.find(id => id !== userId) ?? null;
       dispatch(action.calendarSlice.setPartnerId(partnerId));
-  
+
       unsubscribeUser = subscribeToUserEvents(
         userId,
         dispatch,
         action.calendarSlice.setEvents
       );
-  
+
       if (partnerId) {
         unsubscribePartner = subscribeToUserEvents(
           partnerId,
@@ -73,12 +73,12 @@ export function CalendarPage() {
         );
       }
     };
-  
+
     loadData().catch(error => {
       console.error("Ошибка загрузки:", error);
       message.error("Ошибка загрузки календаря");
     });
-  
+
     return () => {
       unsubscribeUser();
       unsubscribePartner();
@@ -94,7 +94,7 @@ export function CalendarPage() {
       if (!authUser) {
         throw new Error("Данные пользователя не найдены");
       }
-  
+
       const parsedAuthUser = JSON.parse(authUser);
       const accessToken = parsedAuthUser.accessToken;
 
@@ -128,12 +128,12 @@ export function CalendarPage() {
     }
 
     const { event } = info;
-  
+
     if (!event.id) {
       console.error("Событие не содержит ID:", event);
       return;
     }
-  
+
     try {
       await handleUpdateEvent(
         { title: event.title || "" },
@@ -144,14 +144,14 @@ export function CalendarPage() {
         },
         dispatch,
         null,
-        () => {} //заглушка для setLoading
+        () => { } //заглушка для setLoading
       );
     } catch (error) {
       console.error("Ошибка обновления при перетаскивании:", error);
       info.revert(); //откат, если не удалось обновить
     }
   };
-  
+
   const handleEventResize = async (info: EventResizeDoneArg) => {
     if (!info.event.extendedProps.canEdit) {
       info.revert();
@@ -159,12 +159,12 @@ export function CalendarPage() {
     }
 
     const { event } = info;
-  
+
     if (!event.id) {
       console.error("Событие не содержит ID:", event);
       return;
     }
-  
+
     try {
       await handleUpdateEvent(
         { title: event.title || "" },
@@ -175,7 +175,7 @@ export function CalendarPage() {
         },
         dispatch,
         null,
-        () => {}
+        () => { }
       );
     } catch (error) {
       console.error("Ошибка обновления при изменении размера:", error);
@@ -201,11 +201,11 @@ export function CalendarPage() {
   const mappedEvents = [
     ...events.map(event => ({
       id: event.id,
-      title: event.summary, 
+      title: event.summary,
       start: event.start.dateTime,
       end: event.end?.dateTime || event.start.dateTime,
       backgroundColor: "#3788d8",
-      borderColor: "#3788d8", 
+      borderColor: "#3788d8",
       textColor: "#ffffff",
       extendedProps: {
         canEdit: true
@@ -217,7 +217,7 @@ export function CalendarPage() {
       start: event.start.dateTime,
       end: event.end?.dateTime || event.start.dateTime,
       backgroundColor: "#ff9f89",
-      borderColor: "#ff9f89", 
+      borderColor: "#ff9f89",
       textColor: "#000000",
       extendedProps: {
         canEdit: false
@@ -234,11 +234,11 @@ export function CalendarPage() {
       {showConnectCard && (
         <Row justify="center" style={{ margin: '20px' }}>
           <Col span={24} md={18} lg={12}>
-            <Card 
-              title="Интеграция с Google Calendar" 
+            <Card
+              title="Интеграция с Google Calendar"
               actions={[
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   onClick={handleConnectGoogleCalendar}
                 >
                   Подключить Google Calendar
@@ -250,60 +250,60 @@ export function CalendarPage() {
           </Col>
         </Row>
       )}
-      
-      <Row justify="center" style={{ padding: '20px' }}>
-      <Col span={24} style={{ padding: '20px' }}>
-      <FullCalendar
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]} 
-        initialView="dayGridMonth" 
-        locales={[ruLocale]} 
-        locale="ru" 
-        editable={true}
-        eventDrop={handleEventDrop}
-        eventResize={handleEventResize}
-        eventResizableFromStart={true}
-        events={mappedEvents}
-        eventClick={handleEventClick}
-        headerToolbar={{
-          left: 'prev,next today', 
-          center: 'title', 
-          right: 'dayGridMonth,timeGridWeek', 
-        }}
-        views={{
-          dayGridMonth: {
-            buttonText: 'Месяц', 
-            titleFormat: { year: 'numeric', month: 'long' },
-            selectable: false,
-          },
-          timeGridWeek: {
-            buttonText: 'Неделя',
-            selectable: true,
-          },
-        }}
-        contentHeight="500px"
-        selectable={true}
-        select={(info) => {
-          const calendarApi = info.view.calendar;
-          const currentView = calendarApi.view.type;
-          
-          if (currentView === 'timeGridWeek') {
-            dispatch(
-              action.eventModalSlice.showCreateModal({
-                start: info.startStr,
-                end: info.endStr,
-              })
-            );
-          }
-        }}
-      />
-    </Col>
-  </Row>
 
-  <EventCalendarModal 
-    visible={modalState.isVisible} 
-    eventData={modalState.eventData} 
-    modalType={modalState.modalType}
-  />
+      <Row justify="center" style={{ padding: '20px' }}>
+        <Col span={24} style={{ padding: '20px' }}>
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            locales={[ruLocale]}
+            locale="ru"
+            editable={true}
+            eventDrop={handleEventDrop}
+            eventResize={handleEventResize}
+            eventResizableFromStart={true}
+            events={mappedEvents}
+            eventClick={handleEventClick}
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek',
+            }}
+            views={{
+              dayGridMonth: {
+                buttonText: 'Месяц',
+                titleFormat: { year: 'numeric', month: 'long' },
+                selectable: false,
+              },
+              timeGridWeek: {
+                buttonText: 'Неделя',
+                selectable: true,
+              },
+            }}
+            contentHeight="500px"
+            selectable={true}
+            select={(info) => {
+              const calendarApi = info.view.calendar;
+              const currentView = calendarApi.view.type;
+
+              if (currentView === 'timeGridWeek') {
+                dispatch(
+                  action.eventModalSlice.showCreateModal({
+                    start: info.startStr,
+                    end: info.endStr,
+                  })
+                );
+              }
+            }}
+          />
+        </Col>
+      </Row>
+
+      <EventCalendarModal
+        visible={modalState.isVisible}
+        eventData={modalState.eventData}
+        modalType={modalState.modalType}
+      />
     </div>
   );
 }

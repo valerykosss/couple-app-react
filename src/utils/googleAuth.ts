@@ -23,8 +23,8 @@ export default async function handleGoogleAuth({
   const provider = new GoogleAuthProvider();
   //const redirectUri = process.env.REACT_APP_GOOGLE_REDIRECT_URI;
 
-  provider.addScope('https://www.googleapis.com/auth/calendar');
-  provider.addScope('https://www.googleapis.com/auth/calendar.events');
+  provider.addScope("https://www.googleapis.com/auth/calendar");
+  provider.addScope("https://www.googleapis.com/auth/calendar.events");
   // provider.setCustomParameters({
   //   prompt: 'consent',
   //   access_type: 'offline',
@@ -34,7 +34,7 @@ export default async function handleGoogleAuth({
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    
+
     const accessToken = credential?.accessToken ?? undefined;
     const username = user.displayName;
     const firebaseToken = await user.getIdToken();
@@ -45,7 +45,7 @@ export default async function handleGoogleAuth({
     }
 
     // const tokenData = await refreshAccessToken(refreshToken);
-    //console.log("Отправляем refresh-токен:", refreshToken); 
+    //console.log("Отправляем refresh-токен:", refreshToken);
 
     if (accessToken) {
       const updatedUserData = {
@@ -67,7 +67,9 @@ export default async function handleGoogleAuth({
       }
 
       if (showWelcomeMessage) {
-        message.success(`Добро пожаловать, ${user.displayName || "пользователь"}!`);
+        message.success(
+          `Добро пожаловать, ${user.displayName || "пользователь"}!`
+        );
       }
 
       dispatch(action.authSlice.initUser(updatedUserData));
@@ -78,21 +80,20 @@ export default async function handleGoogleAuth({
   } catch (error: unknown) {
     message.error("Ошибка входа через Google.");
   }
-};
-
+}
 
 export async function connectGoogleCalendar(dispatch: AppDispatch) {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
-  
-  provider.addScope('https://www.googleapis.com/auth/calendar');
-  provider.addScope('https://www.googleapis.com/auth/calendar.events');
+
+  provider.addScope("https://www.googleapis.com/auth/calendar");
+  provider.addScope("https://www.googleapis.com/auth/calendar.events");
 
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
     const credential = GoogleAuthProvider.credentialFromResult(result);
-    
+
     const accessToken = credential?.accessToken;
     const refreshToken = user.refreshToken;
 
@@ -110,22 +111,21 @@ export async function connectGoogleCalendar(dispatch: AppDispatch) {
     const updatedUserData = {
       ...currentUserData,
       accessToken,
-      refreshToken
+      refreshToken,
     };
 
     localStorage.setItem("authUser", JSON.stringify(updatedUserData));
     const updatedAuthUser = localStorage.getItem("authUser");
-    
+
     // console.log("func connectGoogleCalendar, updatedAuthUser", updatedAuthUser);
 
-    await updateUser(currentUserData.id, { 
-      accessToken, 
-      refreshToken 
+    await updateUser(currentUserData.id, {
+      accessToken,
+      refreshToken,
     });
 
     dispatch(action.authSlice.updateUserTokens({ accessToken, refreshToken }));
 
-    
     return { success: true };
   } catch (error) {
     console.error("Ошибка подключения Google Calendar:", error);

@@ -1,34 +1,38 @@
 export type DateCardType = {
-    id: string;
-    coupleId: string | null;
-    title: string;
-    description: string;
-    imageUrl: string;
-    durationMinutes: number;
-    type: 'default' | 'custom';
-    createdBy?: string;
-    createdAt?: string;
-    updatedAt?: string;
-  };
+  id: string;
+  coupleId: string | null;
+  title: string;
+  description: string;
+  imageUrl: string;
+  durationMinutes: number;
+  type: "default" | "custom";
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
-
-  export type SwipeSessionType = {
-    id: string;
-    coupleId: string;
-    activeCoupleCardsId: string;
-    status: 'active' | 'matchesFound' | 'completedSuccessfully' | 'noMatchesFound' | 'archived';
-    createdBy: string;
-    createdAt: string;
-    updatedAt: string;
-    completedUserIds: string[];
-    matchedCards: string[];
-    swipes: {
-      [userId: string]: {
-        chosenActiveCards: string[];
-        declinedActiveCards: string[];
-      };
+export type SwipeSessionType = {
+  id: string;
+  coupleId: string;
+  activeCoupleCardsId: string;
+  status:
+    | "active"
+    | "matchesFound"
+    | "completedSuccessfully"
+    | "noMatchesFound"
+    | "archived";
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  completedUserIds: string[];
+  matchedCards: string[];
+  swipes: {
+    [userId: string]: {
+      chosenActiveCards: string[];
+      declinedActiveCards: string[];
     };
   };
+};
 
 export type ActiveCoupleCards = {
   id: string;
@@ -42,7 +46,7 @@ export type UserSwipe = {
   declinedActiveCards: string[];
 };
 
-export type CardWithNumericId = DateCardType & { 
+export type CardWithNumericId = DateCardType & {
   numericId: number;
   originalId: string; // сохраняем оригинальный ID из Firebase
 };

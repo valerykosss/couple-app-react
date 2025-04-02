@@ -31,7 +31,7 @@ const AppLayout = () => {
       path: "/app/timetable"
     },
     {
-      key: "calendar", 
+      key: "calendar",
       icon: <CalendarOutlined />,
       label: <Link to="/app/calendar">Календарь</Link>,
       path: "/app/calendar"

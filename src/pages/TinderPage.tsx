@@ -72,19 +72,19 @@ export const TinderPage = () => {
         setPartnerId(currentPartnerId);
         setCoupleId(currentCouple.id);
 
-        // Получаем последнюю сессию (не только активную)
+        //получаем последнюю сессию (не только активную)
         const latestSession = await getLatestSwipeSession(currentCouple.id);
         
         if (latestSession) {
           setCurrentSession(latestSession);
           
-          // Если сессия в завершенном статусе - показываем экран ожидания
+          //сессия в завершенном статусе - показываем экран ожидания
           if (COMPLETED_STATUSES.includes(latestSession.status)) {
             setLoading(false);
             return;
           }
           
-          // Если сессия active - загружаем только не свайпнутые карточки
+          //сессия active - загружаем только не свайпнутые карточки
           if (latestSession.status === 'active') {
             const activeCards = await getActiveCoupleCards(currentCouple.id);
             if (!activeCards?.cardIds.length) {
@@ -93,7 +93,7 @@ export const TinderPage = () => {
               return;
             }
 
-            // Фильтруем карточки, которые пользователь уже свайпнул
+            //фильтрация
             const userSwipes = latestSession.swipes[userId] || {};
             const swipedCardIds = [
               ...(userSwipes.chosenActiveCards || []),
@@ -103,7 +103,7 @@ export const TinderPage = () => {
             const unswipedCardIds = activeCards.cardIds.filter(id => !swipedCardIds.includes(id));
 
             if (unswipedCardIds.length === 0) {
-              // Если не осталось карточек для свайпа, отмечаем пользователя как завершившего
+              //если не осталось карточек для свайпа, отмечаем пользователя как завершившего
               await markUserCompletedSwipes(latestSession.id, userId);
               setLoading(false);
               return;
@@ -125,7 +125,7 @@ export const TinderPage = () => {
           }
         }
 
-        // Если нет сессии или она archived - загружаем все активные карточки
+        //нет сессии или она archived - загружаем все активные карточки
         const activeCards = await getActiveCoupleCards(currentCouple.id);
         if (!activeCards?.cardIds.length) {
           message.warning('No active cards available');
@@ -154,32 +154,6 @@ export const TinderPage = () => {
     loadData();
   }, []);
 
-  // useEffect(() => {
-  //   if (!currentSession?.id || !partnerId) return;
-
-  //   const handleSessionCompletion = async () => {
-  //     try {
-  //       await findAndUpdateMatches(currentSession.id);
-  //     } catch (error) {
-  //       message.error('Failed to find matches');
-  //     }
-  //   };
-
-  //   const unsubscribe = subscribeToSession(
-  //     currentSession.id,
-  //     (session) => {
-  //       if (session) {
-  //         setCurrentSession(session);
-  //         if (session.completedUserIds.includes(partnerId)) {
-  //           setPartnerCompleted(true);
-  //         }
-  //       }
-  //     },
-  //     handleSessionCompletion 
-  //   );
-
-  //   return () => unsubscribe();
-  // }, [currentSession?.id, partnerId]);
 
 
   useEffect(() => {
@@ -283,7 +257,7 @@ export const TinderPage = () => {
         await markUserCompletedSwipes(session.id, userId);
       }
     } catch (error) {
-      message.error('Failed to save swipe');
+      message.error('свайп не сохранен');
     }
   };
 

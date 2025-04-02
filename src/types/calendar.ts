@@ -1,6 +1,6 @@
 export type CalendarEventType = {
-  id: string; 
-  summary: string; 
+  id: string;
+  summary: string;
   description?: string;
   location?: string;
   start: {
@@ -14,33 +14,33 @@ export type CalendarEventType = {
   htmlLink?: string;
   status?: string;
   creator?: {
-    email: string; 
+    email: string;
     displayName: string;
   };
   attendees?: Array<{
     email: string;
-    responseStatus: string; 
+    responseStatus: string;
   }>;
-  userIds: string[]; 
+  userIds: string[];
   createdBy?: string;
-  createdAt?: string; 
-  updatedAt?: string; 
+  createdAt?: string;
+  updatedAt?: string;
   extendedProperties?: {
-    private: Record<string, string>; 
-  }
+    private: Record<string, string>;
+  };
 
-  iCalUID?: string; 
+  iCalUID?: string;
   kind?: string;
   organizer?: {
     email: string;
     self?: boolean;
   };
-  etag?: string; 
+  etag?: string;
   migratedAt?: string;
   migrationError?: string;
-}
+};
 
 export type TimeSlot = {
   start: Date;
   end: Date;
-}
+};

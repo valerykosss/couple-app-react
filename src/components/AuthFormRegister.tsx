@@ -40,7 +40,7 @@ export default function AuthFormRegister(props: AuthFormRegisterProps) {
     const auth = getAuth();
 
     try {
-      const result =  await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
       const user = result.user;
       const firebaseToken = await user.getIdToken();
 

@@ -22,13 +22,13 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
 
-  const handleGoogleLogin = () => 
+  const handleGoogleLogin = () =>
     handleGoogleAuth({
-      isRegister: false, 
-      dispatch, 
-      navigate, 
-      onClose: props.onClose, 
-      showWelcomeMessage: true 
+      isRegister: false,
+      dispatch,
+      navigate,
+      onClose: props.onClose,
+      showWelcomeMessage: true
     });
 
   const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
@@ -59,13 +59,13 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
       dispatch(action.authSlice.initUser({
         email: user.email,
         id: user.uid,
-        firebaseToken: firebaseToken, 
+        firebaseToken: firebaseToken,
         accessToken: null,
         refreshToken: null,
         tokenExpiresIn: null
       }));
       props.onClose();
-      
+
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("Ошибка авторизации:", error.message);
@@ -78,7 +78,7 @@ export default function AuthFormLogin(props: AuthFormLoginProps) {
     <Form
       form={form}
       name="login"
-      onFinish={onFinish} 
+      onFinish={onFinish}
       layout="vertical"
       requiredMark="optional"
     >

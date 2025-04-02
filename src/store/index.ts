@@ -1,7 +1,7 @@
 import { TypedUseSelectorHook, useSelector } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import authSlice from "./slices/authSlice";
-import '../api/firebase/firebase';
+import "../api/firebase/firebase";
 import uiSlice from "./slices/uiSlice";
 import swiperSlice from "./slices/swiperSlice";
 import calendarSlice from "./slices/calendarSlice";
@@ -9,23 +9,23 @@ import eventModalSlice from "./slices/eventModalSlice";
 import dateCardsSlice from "./slices/dateCardsSlice";
 
 export const action = {
-    authSlice: authSlice.actions,
-    uiSlice: uiSlice.actions,
-    swiperSlice: swiperSlice.actions,
-    calendarSlice: calendarSlice.actions,
-    eventModalSlice: eventModalSlice.actions,
-    dateCardsSlice: dateCardsSlice.actions
-}
+  authSlice: authSlice.actions,
+  uiSlice: uiSlice.actions,
+  swiperSlice: swiperSlice.actions,
+  calendarSlice: calendarSlice.actions,
+  eventModalSlice: eventModalSlice.actions,
+  dateCardsSlice: dateCardsSlice.actions,
+};
 
 const store = configureStore({
-    reducer: {
-        authSlice: authSlice.reducer,
-        uiSlice: uiSlice.reducer,
-        swiperSlice: swiperSlice.reducer,
-        calendarSlice: calendarSlice.reducer,
-        eventModalSlice: eventModalSlice.reducer,
-        dateCardsSlice: dateCardsSlice.reducer
-    }
+  reducer: {
+    authSlice: authSlice.reducer,
+    uiSlice: uiSlice.reducer,
+    swiperSlice: swiperSlice.reducer,
+    calendarSlice: calendarSlice.reducer,
+    eventModalSlice: eventModalSlice.reducer,
+    dateCardsSlice: dateCardsSlice.reducer,
+  },
 });
 
 //значение результата выполнения функции store
