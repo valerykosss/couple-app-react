@@ -7,6 +7,7 @@ import {
   getActiveSwipeSession,
   getDateCard,
   getUserCouples,
+  getLatestSwipeSession,
   markUserCompletedSwipes,
   subscribeToSession,
   updateUserSwipes
@@ -29,6 +30,8 @@ const containerStyle: React.CSSProperties = {
   justifyContent: 'center',
   alignItems: 'center'
 };
+
+const COMPLETED_STATUSES = ['matchesFound', 'completedSuccessfully', 'noMatchesFound'];
 
 export const TinderPage = () => {
   const [cards, setCards] = useState<CardWithNumericId[]>([]);
@@ -64,6 +67,60 @@ export const TinderPage = () => {
         setPartnerId(currentPartnerId);
         setCoupleId(currentCouple.id);
 
+        // Получаем последнюю сессию (не только активную)
+        const latestSession = await getLatestSwipeSession(currentCouple.id);
+        
+        if (latestSession) {
+          setCurrentSession(latestSession);
+          
+          // Если сессия в завершенном статусе - показываем экран ожидания
+          if (COMPLETED_STATUSES.includes(latestSession.status)) {
+            setLoading(false);
+            return;
+          }
+          
+          // Если сессия active - загружаем только не свайпнутые карточки
+          if (latestSession.status === 'active') {
+            const activeCards = await getActiveCoupleCards(currentCouple.id);
+            if (!activeCards?.cardIds.length) {
+              message.warning('No active cards available');
+              setLoading(false);
+              return;
+            }
+
+            // Фильтруем карточки, которые пользователь уже свайпнул
+            const userSwipes = latestSession.swipes[userId] || {};
+            const swipedCardIds = [
+              ...(userSwipes.chosenActiveCards || []),
+              ...(userSwipes.declinedActiveCards || [])
+            ];
+
+            const unswipedCardIds = activeCards.cardIds.filter(id => !swipedCardIds.includes(id));
+
+            if (unswipedCardIds.length === 0) {
+              // Если не осталось карточек для свайпа, отмечаем пользователя как завершившего
+              await markUserCompletedSwipes(latestSession.id, userId);
+              setLoading(false);
+              return;
+            }
+
+            const cardsData = (await Promise.all(
+              unswipedCardIds.map(id => getDateCard(id))
+            )).filter((card): card is DateCardType => card !== null);
+
+            const cardsWithNumericId = cardsData.map((card, index) => ({
+              ...card,
+              numericId: index + 1,
+              originalId: card.id
+            }));
+
+            setCards(cardsWithNumericId.sort(() => Math.random() - 0.5));
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Если нет сессии или она archived - загружаем все активные карточки
         const activeCards = await getActiveCoupleCards(currentCouple.id);
         if (!activeCards?.cardIds.length) {
           message.warning('No active cards available');
@@ -82,12 +139,6 @@ export const TinderPage = () => {
         }));
 
         setCards(cardsWithNumericId.sort(() => Math.random() - 0.5));
-
-        const session = await getActiveSwipeSession(currentCouple.id);
-
-        if (session) {
-          setCurrentSession(session);
-        }
       } catch (error) {
         message.error('Failed to load data');
       } finally {
@@ -127,7 +178,8 @@ export const TinderPage = () => {
     try {
       let session = currentSession;
 
-      if (!session) {
+      // Если нет сессии или она archived - создаем новую
+      if (!session || session.status === 'archived') {
         session = await createSwipeSession({
           coupleId,
           activeCoupleCardsId: `active_${coupleId}`,
@@ -169,7 +221,12 @@ export const TinderPage = () => {
 
   if (loading) return <div style={containerStyle}><Spin size="large" /></div>;
 
-  if (!cards.length) return <WaitingScreen />;
+  // Показываем экран ожидания если:
+  // 1. Нет карточек
+  // 2. Сессия в завершенном статусе
+  if (!cards.length || (currentSession && COMPLETED_STATUSES.includes(currentSession.status))) {
+    return <WaitingScreen />;
+  }
 
   return (
     <div style={containerStyle}>

@@ -1,16 +1,40 @@
 import React, { useState } from "react";
-import { Avatar, Button, Card, List, Typography, Space, Input, Col, Row } from "antd";
+import { Avatar, Button, Card, List, Typography, Space, Input, Col, Row, message } from "antd";
 import { HeartOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../api/firebase/firebase";
 
 const { Title } = Typography;
 
 export default function GeneralPage() {
-    const [partner, setPartner] = useState("");
+  const [partner, setPartner] = useState("");
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [dates] = useState([
     { id: 1, title: "Романтический ужин", date: "10 апреля 2025" },
     { id: 2, title: "Прогулка в парке", date: "15 апреля 2025" },
   ]);
+
+  const sendInvitation = async () => {
+    if (!email) {
+      message.error("Введите email партнера");
+      return;
+    }
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "invitations"), {
+        email,
+        status: "pending",
+        createdAt: new Date(),
+      });
+      message.success("Приглашение отправлено!");
+      setPartner(email);
+    } catch (error) {
+      console.error("Ошибка отправки приглашения:", error);
+      message.error("Не удалось отправить приглашение");
+    }
+    setLoading(false);
+  };
 
   return (
     <Row style={{ width: "100%", height: "100vh", overflow: "hidden" }}>
@@ -39,7 +63,9 @@ export default function GeneralPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 style={{ marginBottom: "10px" }}
               />
-              <Button type="primary" onClick={() => setPartner(email)}>Присоединить</Button>
+              <Button type="primary" onClick={sendInvitation} loading={loading}>
+                Отправить приглашение
+              </Button>
             </Card>
           )}
         </div>

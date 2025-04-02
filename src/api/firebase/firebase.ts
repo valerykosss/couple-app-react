@@ -11,6 +11,7 @@ import {
   initializeFirestore,
   limit,
   onSnapshot,
+  orderBy,
   query,
   QueryDocumentSnapshot,
   setDoc,
@@ -550,6 +551,82 @@ export const getActiveSwipeSession = async (coupleId: string): Promise<SwipeSess
     return snapshot.empty ? null : snapshot.docs[0].data() as SwipeSessionType;
   } catch (error) {
     console.error('Error getting active session:', error);
+    throw error;
+  }
+};
+
+export const getLatestSwipeSession = async (coupleId: string): Promise<SwipeSessionType | null> => {
+  try {
+    const sessionsRef = collection(db, 'swipeSessions');
+    // Только фильтр по coupleId (не требует составного индекса)
+    const q = query(
+      sessionsRef,
+      where('coupleId', '==', coupleId)
+    );
+
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) return null;
+
+    // Преобразуем в массив и фильтруем/сортируем на клиенте
+    const sessions = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as SwipeSessionType));
+
+    // 1. Фильтруем только активные сессии
+    const activeSessions = sessions.filter(session => session.status === 'active');
+
+    // 2. Сортируем по дате создания (новые сначала)
+    const sortedSessions = activeSessions.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // Возвращаем самую новую активную сессию
+    return sortedSessions[0] || null;
+
+  } catch (error) {
+    console.error('[getLatestSwipeSession] Error:', error);
+    return null;
+  }
+};
+
+export const findAndUpdateMatches = async (sessionId: string): Promise<void> => {
+  try {
+    const sessionRef = doc(db, 'swipeSessions', sessionId);
+    const sessionDoc = await getDoc(sessionRef);
+    
+    if (!sessionDoc.exists()) {
+      throw new Error('Session not found');
+    }
+
+    const session = sessionDoc.data() as SwipeSessionType;
+    
+    // 1. Проверяем, что оба пользователя завершили свайпы
+    if (session.completedUserIds.length < 2) {
+      console.log('Not all users completed swipes yet');
+      return;
+    }
+
+    // 2. Получаем ID пользователей
+    const [user1Id, user2Id] = session.completedUserIds;
+    const user1Swipes = session.swipes[user1Id]?.chosenActiveCards || [];
+    const user2Swipes = session.swipes[user2Id]?.chosenActiveCards || [];
+
+    // 3. Находим пересечение массивов (совпадения)
+    const matchedCards = user1Swipes.filter(cardId => 
+      user2Swipes.includes(cardId)
+    );
+
+    // 4. Обновляем сессию
+    await updateDoc(sessionRef, {
+      matchedCards,
+      status: matchedCards.length > 0 ? 'matchesFound' : 'noMatchesFound',
+      updatedAt: new Date().toISOString()
+    });
+
+    console.log(`Session updated with matches: ${matchedCards.join(', ')}`);
+  } catch (error) {
+    console.error('Error in findAndUpdateMatches:', error);
     throw error;
   }
 };
