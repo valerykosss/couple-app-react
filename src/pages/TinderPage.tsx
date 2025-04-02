@@ -11,10 +11,12 @@ import {
   markUserCompletedSwipes,
   subscribeToSession,
   updateUserSwipes,
-  findAndUpdateMatches
+  findAndUpdateMatches,
+  createJointEvent
 } from '../api/firebase/firebase';
 import { WaitingScreen } from '../components/WaitingScreen';
 import { TinderCard } from '../components/TinderCard';
+import { findAvailableSlot } from '../utils/findAvailableSlot';
 
 const { Title, Text } = Typography;
 
@@ -32,7 +34,8 @@ const containerStyle: React.CSSProperties = {
   alignItems: 'center'
 };
 
-const COMPLETED_STATUSES = ['matchesFound', 'completedSuccessfully', 'noMatchesFound'];
+const COMPLETED_STATUSES = ['completedSuccessfully', 'noMatchesFound'];
+// const COMPLETED_STATUSES = ['matchesFound', 'completedSuccessfully', 'noMatchesFound'];
 
 
 export const TinderPage = () => {
@@ -154,46 +157,83 @@ export const TinderPage = () => {
   // useEffect(() => {
   //   if (!currentSession?.id || !partnerId) return;
 
-  //   const unsubscribe = subscribeToSession(currentSession.id, (session) => {
-  //     if (session) {
-  //       setCurrentSession(session);
-  //       if (session.completedUserIds.includes(partnerId)) {
-  //         setPartnerCompleted(true);
-  //       }
+  //   const handleSessionCompletion = async () => {
+  //     try {
+  //       await findAndUpdateMatches(currentSession.id);
+  //     } catch (error) {
+  //       message.error('Failed to find matches');
   //     }
-  //   });
-
-  //   return () => {
-  //     unsubscribe();
   //   };
+
+  //   const unsubscribe = subscribeToSession(
+  //     currentSession.id,
+  //     (session) => {
+  //       if (session) {
+  //         setCurrentSession(session);
+  //         if (session.completedUserIds.includes(partnerId)) {
+  //           setPartnerCompleted(true);
+  //         }
+  //       }
+  //     },
+  //     handleSessionCompletion 
+  //   );
+
+  //   return () => unsubscribe();
   // }, [currentSession?.id, partnerId]);
 
-  useEffect(() => {
-    if (!currentSession?.id || !partnerId) return;
 
-    const handleSessionCompletion = async () => {
+  useEffect(() => {
+    const handleMatch = async () => {
+      if (!currentSession?.id || !partnerId) return;
+  
       try {
-        await findAndUpdateMatches(currentSession.id);
+        const matchResult = await findAndUpdateMatches(currentSession.id);
+        if (!matchResult?.matchedCards.length) return;
+  
+        const slot = await findAvailableSlot(
+          matchResult.matchedCards[0],
+          matchResult.userIds
+        );
+        if (!slot) return;
+  
+        const eventData = await getDateCard(matchResult.matchedCards[0]);
+        if (!eventData) {
+          message.error('Не удалось получить данные о мероприятии');
+          return;
+        }
+  
+        await createJointEvent({
+          event: eventData,
+          slot,
+          userIds: matchResult.userIds
+        });
+  
+        message.success(
+          `Свидание запланировано на ${formatDateTime(slot.start)}!`,
+          8 
+        );
+        
+        message.info('Подробности отправлены в ваш календарь');
+  
       } catch (error) {
-        message.error('Failed to find matches');
+        message.error('Произошла ошибка при планировании свидания');
+        console.error('Match handling error:', error);
       }
     };
+  
+    handleMatch();
+  }, [currentSession?.matchedCards, partnerId]);
+  
 
-    const unsubscribe = subscribeToSession(
-      currentSession.id,
-      (session) => {
-        if (session) {
-          setCurrentSession(session);
-          if (session.completedUserIds.includes(partnerId)) {
-            setPartnerCompleted(true);
-          }
-        }
-      },
-      handleSessionCompletion // Передаем колбэк для обработки завершения
-    );
-
-    return () => unsubscribe();
-  }, [currentSession?.id, partnerId]);
+  const formatDateTime = (date: Date) => {
+    return new Intl.DateTimeFormat('ru-RU', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
 
   const handleSwipe = async (action: { id: string; direction: 'left' | 'right' }) => {
     if (!coupleId) return;
@@ -207,7 +247,6 @@ export const TinderPage = () => {
     try {
       let session = currentSession;
 
-      // Если нет сессии или она archived - создаем новую
       if (!session || session.status === 'archived') {
         session = await createSwipeSession({
           coupleId,
@@ -250,9 +289,7 @@ export const TinderPage = () => {
 
   if (loading) return <div style={containerStyle}><Spin size="large" /></div>;
 
-  // Показываем экран ожидания если:
-  // 1. Нет карточек
-  // 2. Сессия в завершенном статусе
+  //экран ожидания если:нет карточек, сессия в завершенном статусе
   if (!cards.length || (currentSession && COMPLETED_STATUSES.includes(currentSession.status))) {
     return <WaitingScreen />;
   }

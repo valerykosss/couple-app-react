@@ -1,5 +1,6 @@
-import { initializeApp } from "firebase/app";
+import { FirebaseError, initializeApp } from "firebase/app";
 import {
+  addDoc,
   arrayUnion,
   collection,
   deleteDoc,
@@ -19,7 +20,7 @@ import {
   where,
 } from "firebase/firestore";
 import { v4 } from "uuid";
-import { CalendarEventType } from "../../types/calendar";
+import { CalendarEventType, TimeSlot } from "../../types/calendar";
 import { message } from "antd";
 import { action, AppDispatch } from "../../store";
 import { Action, AnyAction } from "@reduxjs/toolkit";
@@ -183,15 +184,65 @@ export async function getEventsByUserId(userId: string): Promise<CalendarEventTy
     throw error;
   }
 }
-// export async function createEvent(event: CalendarEventType) {
-//   let eventId = event.id || event.htmlLink?.split('/').pop() || v4();
-//   await setDoc(dataPoints.eventDoc(eventId), {
-//     ...event,
-//     id: eventId,
-//     userIds: event.userIds || [event.createdBy],
-//   });
-//   return eventId;
-// }
+
+const getBothUsersEvents = async (userIds: string[], timeMin: Date, timeMax: Date) => {
+  const [currentUserEvents, partnerEvents] = await Promise.all([
+    getEventsByUserId(userIds[0]),
+    getEventsByUserId(userIds[1])
+  ]);
+  
+  return {
+    currentUserEvents: filterEventsByDateRange(currentUserEvents, timeMin, timeMax),
+    partnerEvents: filterEventsByDateRange(partnerEvents, timeMin, timeMax)
+  };
+};
+
+const filterEventsByDateRange = (events: CalendarEventType[], start: Date, end: Date) => {
+  return events.filter(event => {
+    const eventStart = new Date(event.start.dateTime);
+    const eventEnd = new Date(event.end.dateTime);
+    return eventStart < end && eventEnd > start;
+  });
+};
+
+export const createJointEvent = async ({
+  event,
+  slot,
+  userIds
+}: {
+  event: DateCardType;
+  slot: TimeSlot;
+  userIds: string[];
+}) => {
+  const newEvent: Omit<CalendarEventType, 'id'> = {
+    summary: `Совместное: ${event.title}`,
+    description: `Автоматически создано на основе совпадения\n${event.description || ''}`,
+    start: {
+      dateTime: slot.start.toISOString(),
+      timeZone: 'Europe/Moscow'
+    },
+    end: {
+      dateTime: slot.end.toISOString(),
+      timeZone: 'Europe/Moscow'
+    },
+    userIds,
+    createdAt: new Date().toISOString(),
+    status: 'confirmed',
+    organizer: {
+      email: `${userIds[0]}@yourdomain.com`,
+      self: true
+    },
+    extendedProperties: {
+      private: {
+        createdFrom: 'swipe-session',
+        originalCardId: event.id
+      }
+    }
+  };
+
+  const docRef = await addDoc(collection(db, 'events'), newEvent);
+  return docRef.id;
+};
 
 export async function createEvent(event: CalendarEventType) {
   const eventId = event.id || event.htmlLink?.split('/').pop() || v4();
@@ -224,6 +275,7 @@ export async function createEvent(event: CalendarEventType) {
 
   return eventId;
 }
+
 export async function updateEvent(eventId: string, updatedEvent: Partial<CalendarEventType>) {
   await updateDoc(dataPoints.eventDoc(eventId), updatedEvent);
 }
@@ -567,21 +619,17 @@ export const getLatestSwipeSession = async (coupleId: string): Promise<SwipeSess
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) return null;
 
-    // Преобразуем в массив и фильтруем/сортируем на клиенте
     const sessions = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     } as SwipeSessionType));
 
-    // 1. Фильтруем только активные сессии
     const activeSessions = sessions.filter(session => session.status === 'active');
 
-    // 2. Сортируем по дате создания (новые сначала)
     const sortedSessions = activeSessions.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    // Возвращаем самую новую активную сессию
     return sortedSessions[0] || null;
 
   } catch (error) {
@@ -590,43 +638,69 @@ export const getLatestSwipeSession = async (coupleId: string): Promise<SwipeSess
   }
 };
 
-export const findAndUpdateMatches = async (sessionId: string): Promise<void> => {
+///////СЛОТЫЫЫЫЫЫ
+export const findAndUpdateMatches = async (
+  sessionId: string
+): Promise<{
+  matchedCards: string[];
+  userIds: string[];
+} | null> => {
   try {
     const sessionRef = doc(db, 'swipeSessions', sessionId);
-    const sessionDoc = await getDoc(sessionRef);
+    const sessionSnap = await getDoc(sessionRef);
     
-    if (!sessionDoc.exists()) {
-      throw new Error('Session not found');
+    if (!sessionSnap.exists()) {
+      throw new Error(`Session ${sessionId} not found`);
     }
 
-    const session = sessionDoc.data() as SwipeSessionType;
+    const session = sessionSnap.data() as SwipeSessionType;
     
-    // 1. Проверяем, что оба пользователя завершили свайпы
+    if (!session.completedUserIds || !session.swipes) {
+      throw new Error('Invalid session structure');
+    }
+
     if (session.completedUserIds.length < 2) {
-      console.log('Not all users completed swipes yet');
-      return;
+      console.debug('Not all users completed swipes');
+      return null;
     }
 
-    // 2. Получаем ID пользователей
     const [user1Id, user2Id] = session.completedUserIds;
-    const user1Swipes = session.swipes[user1Id]?.chosenActiveCards || [];
-    const user2Swipes = session.swipes[user2Id]?.chosenActiveCards || [];
+    const user1Choices = session.swipes[user1Id]?.chosenActiveCards || [];
+    const user2Choices = session.swipes[user2Id]?.chosenActiveCards || [];
 
-    // 3. Находим пересечение массивов (совпадения)
-    const matchedCards = user1Swipes.filter(cardId => 
-      user2Swipes.includes(cardId)
+    const user2ChoicesSet = new Set(user2Choices);
+    const matchedCards = user1Choices.filter(cardId => 
+      user2ChoicesSet.has(cardId)
     );
 
-    // 4. Обновляем сессию
-    await updateDoc(sessionRef, {
+    const newStatus = matchedCards.length > 0 
+      ? 'matchesFound' 
+      : 'noMatchesFound';
+
+    const updateData: Partial<SwipeSessionType> = {
       matchedCards,
-      status: matchedCards.length > 0 ? 'matchesFound' : 'noMatchesFound',
+      status: newStatus,
       updatedAt: new Date().toISOString()
+    };
+
+    console.log(`Updating session ${sessionId} with:`, {
+      matchesCount: matchedCards.length,
+      newStatus
     });
 
-    console.log(`Session updated with matches: ${matchedCards.join(', ')}`);
+    await updateDoc(sessionRef, updateData);
+
+    return {
+      matchedCards,
+      userIds: session.completedUserIds
+    }
   } catch (error) {
-    console.error('Error in findAndUpdateMatches:', error);
+    console.error(`Failed to process matches for session ${sessionId}:`, error);
+    
+    if (error instanceof FirebaseError) {
+      throw new Error('Database error: ' + error.message);
+    }
+    
     throw error;
   }
 };

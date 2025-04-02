@@ -39,3 +39,8 @@ export type CalendarEventType = {
   migratedAt?: string;
   migrationError?: string;
 }
+
+export type TimeSlot = {
+  start: Date;
+  end: Date;
+}
