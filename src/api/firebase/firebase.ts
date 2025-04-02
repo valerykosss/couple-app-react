@@ -22,7 +22,7 @@ import { CalendarEventType } from "../../types/calendar";
 import { message } from "antd";
 import { action, AppDispatch } from "../../store";
 import { Action, AnyAction } from "@reduxjs/toolkit";
-import { ActiveCoupleCards, DateCardType, SwipeSession } from "../../types/dateCards";
+import { ActiveCoupleCards, DateCardType, SwipeSessionType} from "../../types/dateCards";
 
 
 const firebaseConfig = {
@@ -373,24 +373,6 @@ export type ActiveCoupleCardsType = {
   lastUpdated: string;
 };
 
-export type SwipeSessionType = {
-  id: string;
-  sessionId: string;
-  coupleId: string;
-  activeCoupleCardsId: string;
-  status: 'active' | 'completed' | 'archived';
-  createdBy: string;
-  createdAt: string;
-  completedUserIds: string[];
-  matchedCards: string[];
-  swipes: {
-    [userId: string]: {
-      chosenActiveCards: string[];
-      declinedActiveCards: string[];
-    };
-  };
-};
-
 export type ScheduledDateType = {
   id: string;
   coupleId: string;
@@ -530,14 +512,14 @@ export async function updateActiveCoupleCards(id: string, cardIds: string[]) {
 
 //SWIPE SESSIONS OPERATIONS
 
-export const createSwipeSession = async (
-  params: Omit<SwipeSession, 'id'>
-): Promise<SwipeSession> => {
+export const createSwipeSession= async (
+  params: Omit<SwipeSessionType, 'id'>
+): Promise<SwipeSessionType> => {
   try {
     const sessionId = `${params.coupleId}_${Date.now()}`;
     const now = new Date().toISOString();
     
-    const sessionData: SwipeSession = {
+    const sessionData: SwipeSessionType= {
       id: sessionId,
       ...params,
       status: 'active',
@@ -556,7 +538,7 @@ export const createSwipeSession = async (
   }
 };
 
-export const getActiveSwipeSession = async (coupleId: string): Promise<SwipeSession | null> => {
+export const getActiveSwipeSession = async (coupleId: string): Promise<SwipeSessionType| null> => {
   try {
     const q = query(
       collection(db, 'swipeSessions'),
@@ -565,7 +547,7 @@ export const getActiveSwipeSession = async (coupleId: string): Promise<SwipeSess
       limit(1)
     );
     const snapshot = await getDocs(q);
-    return snapshot.empty ? null : snapshot.docs[0].data() as SwipeSession;
+    return snapshot.empty ? null : snapshot.docs[0].data() as SwipeSessionType;
   } catch (error) {
     console.error('Error getting active session:', error);
     throw error;
@@ -579,15 +561,30 @@ export const updateUserSwipes = async (
   declinedCards: string[]
 ): Promise<void> => {
   try {
-    const updates: Partial<SwipeSession> = {
-      updatedAt: new Date().toISOString(),
-      [`swipes.${userId}`]: {
-        chosenActiveCards: arrayUnion(...chosenCards),
-        declinedActiveCards: arrayUnion(...declinedCards)
-      }
+    const sessionRef = doc(db, 'swipeSessions', sessionId);
+    const sessionSnap = await getDoc(sessionRef);
+
+    if (!sessionSnap.exists()) {
+      throw new Error(`Session with ID ${sessionId} not found`);
+    }
+
+    const sessionData = sessionSnap.data() as SwipeSessionType;
+
+    // Проверяем, есть ли записи о свайпах пользователя
+    const userSwipes = sessionData.swipes?.[userId] || {
+      chosenActiveCards: [],
+      declinedActiveCards: [],
     };
 
-    await updateDoc(doc(db, 'swipeSessions', sessionId), updates);
+    const updates: Partial<SwipeSessionType> = {
+      updatedAt: new Date().toISOString(),
+      [`swipes.${userId}`]: {
+        chosenActiveCards: arrayUnion(...(userSwipes.chosenActiveCards || []), ...chosenCards),
+        declinedActiveCards: arrayUnion(...(userSwipes.declinedActiveCards || []), ...declinedCards),
+      },
+    };
+
+    await updateDoc(sessionRef, updates);
   } catch (error) {
     console.error('Error updating swipes:', error);
     throw error;
@@ -622,6 +619,23 @@ export async function completeSwipeSession(sessionId: string) {
     updatedAt: new Date().toISOString(),
   });
 }
+
+export const getArchivedSwipeSessions = async (coupleId: string): Promise<SwipeSessionType[]> => {
+  try {
+    const q = query(
+      collection(db, 'swipeSessions'),
+      where('coupleId', '==', coupleId),
+      where('status', '==', 'archived')
+    );
+    const snapshot = await getDocs(q);
+    const sessions = snapshot.docs.map(doc => doc.data() as SwipeSessionType);
+
+    return sessions;
+  } catch (error) {
+    console.error('Error getting archived sessions:', error);
+    return [];
+  }
+};
 
 //SCHEDULED DATES OPERATIONS
 
@@ -698,10 +712,10 @@ export async function cancelScheduledDate(dateId: string) {
 
 export const subscribeToSession = (
   sessionId: string,
-  callback: (session: SwipeSession | null) => void
+  callback: (session: SwipeSessionType| null) => void
 ) => {
   return onSnapshot(doc(db, 'swipeSessions', sessionId), (doc) => {
-    callback(doc.exists() ? doc.data() as SwipeSession : null);
+    callback(doc.exists() ? doc.data() as SwipeSessionType: null);
   });
 };
 

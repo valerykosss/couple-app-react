@@ -12,23 +12,23 @@ export type DateCardType = {
   };
 
 
-export type SwipeSession = {
-  id: string;
-  coupleId: string;
-  activeCoupleCardsId: string;
-  status: 'active' | 'completed';
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  completedUserIds: string[];
-  matchedCards: string[];
-  swipes: {
-    [userId: string]: {
-      chosenActiveCards: string[];
-      declinedActiveCards: string[];
+  export type SwipeSessionType = {
+    id: string;
+    coupleId: string;
+    activeCoupleCardsId: string;
+    status: 'active' | 'matchesFound' | 'completedSuccessfully' | 'noMatchesFound' | 'archived';
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    completedUserIds: string[];
+    matchedCards: string[];
+    swipes: {
+      [userId: string]: {
+        chosenActiveCards: string[];
+        declinedActiveCards: string[];
+      };
     };
   };
-};
 
 export type ActiveCoupleCards = {
   id: string;
@@ -40,4 +40,9 @@ export type ActiveCoupleCards = {
 export type UserSwipe = {
   chosenActiveCards: string[];
   declinedActiveCards: string[];
+};
+
+export type CardWithNumericId = DateCardType & { 
+  numericId: number;
+  originalId: string; // сохраняем оригинальный ID из Firebase
 };
