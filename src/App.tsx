@@ -11,6 +11,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { TinderPage } from './pages/TinderPage';
 import { Layout, Spin } from 'antd';
 import { Content } from 'antd/es/layout/layout';
+import DateRecordsPage from './pages/DateRecordsPage';
 
 function App() {
   const loading = useAuthCheck();
@@ -38,6 +39,7 @@ function App() {
             <Route path="" element={<GeneralPage />} />
             <Route path="tinder" element={<TinderPage />} />
             <Route path="calendar" element={<CalendarPage />} />
+            <Route path="dateRecords" element={<DateRecordsPage />} />
           </Route>
         </Route>
           

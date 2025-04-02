@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Layout, Menu } from "antd";
-import { HomeOutlined, CalendarOutlined, HeartOutlined } from "@ant-design/icons";
+import { HomeOutlined, CalendarOutlined, HeartOutlined, TableOutlined } from "@ant-design/icons";
 import { Link, useLocation, Outlet } from "react-router";
 import CommonHeader from "./CommonHeader";
 
@@ -35,6 +35,12 @@ const AppLayout = () => {
       icon: <CalendarOutlined />,
       label: <Link to="/app/calendar">Календарь</Link>,
       path: "/app/calendar"
+    },
+    {
+      key: "dateRecords",
+      icon: <TableOutlined />,
+      label: <Link to="/app/dateRecords">Записи свиданий</Link>,
+      path: "/app/dateRecords"
     }
   ];
 

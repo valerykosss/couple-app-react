@@ -20,6 +20,7 @@ import { CalendarEventType } from "../../types/calendar";
 import { message } from "antd";
 import { action, AppDispatch } from "../../store";
 import { Action, AnyAction } from "@reduxjs/toolkit";
+import { DateCardType } from "../../types/dateCards";
 
 
 const firebaseConfig = {
@@ -83,8 +84,39 @@ const dataPoints = {
   events: dataPoint<CalendarEventType>('events'),
   //на одно событие
   eventDoc: (eventId: string) => dataPointForOne<CalendarEventType>('events', eventId),
+  //пары 
   couples: dataPoint<CoupleType>('couples'),
   coupleDoc: (coupleId: string) => dataPointForOne<CoupleType>('couples', coupleId),
+  //все карточки свиданий
+  dateCards: dataPoint<DateCardType>('dateCards'),
+  dateCardDoc: (cardId: string) => dataPointForOne<DateCardType>('dateCards', cardId),
+  //активные карточки
+  activeCoupleCards: dataPoint<ActiveCoupleCardsType>('activeCoupleCards'),
+  activeCoupleCardsDoc: (id: string) => dataPointForOne<ActiveCoupleCardsType>('activeCoupleCards', id),
+  //сессии свайпов
+  swipeSessions: dataPoint<SwipeSessionType>('swipeSessions'),
+  swipeSessionDoc: (id: string) => dataPointForOne<SwipeSessionType>('swipeSessions', id),
+  //запланированные свидания 
+  scheduledDates: dataPoint<ScheduledDateType>('scheduledDates'),
+  scheduledDateDoc: (id: string) => dataPointForOne<ScheduledDateType>('scheduledDates', id),
+
+  coupleDateCards: (coupleId: string) => query(
+    dataPoint<DateCardType>('dateCards'),
+    where('coupleId', '==', coupleId)
+  ),
+  activeCoupleCardsForCouple: (coupleId: string) => query(
+    dataPoint<ActiveCoupleCardsType>('activeCoupleCards'),
+    where('coupleId', '==', coupleId)
+  ),
+  activeSwipeSessionsForCouple: (coupleId: string) => query(
+    dataPoint<SwipeSessionType>('swipeSessions'),
+    where('coupleId', '==', coupleId),
+    where('status', '==', 'active')
+  ),
+  scheduledDatesForCouple: (coupleId: string) => query(
+    dataPoint<ScheduledDateType>('scheduledDates'),
+    where('coupleId', '==', coupleId)
+  ),
 }
 
 //USER
@@ -204,31 +236,16 @@ export async function deleteEvent(eventId: string) {
   await deleteDoc(docRef);
 }
 
-// export function subscribeToUserEvents(userId: string, dispatch: AppDispatch) {
-//   const eventsQuery = query(
-//     collection(db, "events"), 
-//     where("userIds", "array-contains", userId)
-//   );
-
-//   const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
-//     const userEvents = snapshot.docs.map((doc) => doc.data() as CalendarEventType);
-//     dispatch(action.calendarSlice.setEvents(userEvents));
-//   });
-
-//   return unsubscribe;
-// }
-
-// В файле firebase API
 export function subscribeToUserEvents(
   userId: string,
   dispatch: AppDispatch,
-  actionCreator: (events: CalendarEventType[]) => Action // Убрали опциональность
+  actionCreator: (events: CalendarEventType[]) => Action 
 ) {
   const q = query(collection(db, "events"), where("userIds", "array-contains", userId));
   
   const unsubscribe = onSnapshot(q, (snapshot) => {
     const events = snapshot.docs.map(doc => doc.data() as CalendarEventType);
-    dispatch(actionCreator(events)); // Всегда используем переданный actionCreator
+    dispatch(actionCreator(events));
   });
 
   return unsubscribe;
@@ -271,14 +288,48 @@ export async function addUserToCouple(coupleId: string, userId: string) {
   });
 }
 
-export async function getUserCouples(userId: string) {
-  const couplesQuery = query(
-    dataPoints.couples,
-    where("usersId", "array-contains", userId)
-  );
+export async function getCoupleByUserIds(userIds: string[]) {
+  if (userIds.length !== 2) {
+    throw new Error('Необходимо передать ровно два ID пользователя');
+  }
 
-  const querySnapshot = await getDocs(couplesQuery);
-  return querySnapshot.docs.map(doc => doc.data());
+  try {
+    //пары, где есть первый пользователь
+    const couplesQuery = query(
+      dataPoints.couples,
+      where('usersId', 'array-contains', userIds[0])
+    );
+    
+    const snapshot = await getDocs(couplesQuery);
+    
+    //проверяем, есть ли среди этих пар та, где есть второй пользователь
+    for (const doc of snapshot.docs) {
+      const couple = doc.data();
+      if (couple.usersId.includes(userIds[1])) {
+        return couple;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding couple by user IDs:', error);
+    throw new Error('Ошибка при поиске пары');
+  }
+}
+
+export async function getUserCouples(userId: string) {
+  try {
+    const couplesQuery = query(
+      dataPoints.couples,
+      where("usersId", "array-contains", userId)
+    );
+
+    const querySnapshot = await getDocs(couplesQuery);
+    return querySnapshot.docs.map(doc => doc.data());
+  } catch (error) {
+    console.error('Error getting user couples:', error);
+    throw new Error('Ошибка при получении пар пользователя');
+  }
 }
 
 export async function updateCouple(coupleId: string, updates: Partial<Omit<CoupleType, 'id'>>) {
@@ -311,4 +362,335 @@ export function subscribeToUserCouples(userId: string, dispatch: AppDispatch) {
   });
 
   return unsubscribe;
+}
+
+export type ActiveCoupleCardsType = {
+  id: string;
+  coupleId: string;
+  cardIds: string[];
+  lastUpdated: string;
+};
+
+export type SwipeSessionType = {
+  id: string;
+  sessionId: string;
+  coupleId: string;
+  activeCoupleCardsId: string;
+  status: 'active' | 'completed' | 'archived';
+  createdBy: string;
+  createdAt: string;
+  completedUserIds: string[];
+  matchedCards: string[];
+  swipes: {
+    [userId: string]: {
+      chosenActiveCards: string[];
+      declinedActiveCards: string[];
+    };
+  };
+};
+
+export type ScheduledDateType = {
+  id: string;
+  coupleId: string;
+  dateCardId: string;
+  proposedTime: string;
+  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled';
+  userResponses: {
+    [userId: string]: boolean | null;
+  };
+  createdAt: string;
+};
+
+//DATE CARDS OPERATIONS
+
+export async function createDateCard(card: Omit<DateCardType, 'id' | 'createdAt' | 'updatedAt'>) {
+  const cardId = v4();
+  const now = new Date().toISOString();
+  
+  // Валидация для custom карточек
+  if (card.type === 'custom' && !card.coupleId) {
+    throw new Error('Для custom карточек обязателен coupleId');
+  }
+
+  // Подготовка данных карточки
+  const cardData = {
+    ...card,
+    id: cardId,
+    createdAt: now,
+    updatedAt: now,
+    coupleId: card.type === 'default' ? null : card.coupleId // Устанавливаем null для default
+  };
+
+  await setDoc(dataPoints.dateCardDoc(cardId), cardData);
+
+  return cardId;
+}
+
+export async function getDateCard(cardId: string) {
+  const snapshot = await getDoc(dataPoints.dateCardDoc(cardId));
+  return snapshot.data();
+}
+
+// firebase.ts
+export async function getDefaultDateCards() {
+  try {
+    // Создаем запрос для получения всех карточек с type = 'default'
+    const defaultCardsQuery = query(
+      dataPoints.dateCards,
+      where('type', '==', 'default')
+    );
+
+    // Выполняем запрос
+    const querySnapshot = await getDocs(defaultCardsQuery);
+
+    // Преобразуем результат в массив DateCardType
+    const defaultCards = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        durationMinutes: data.durationMinutes,
+        type: 'default' as const,
+        coupleId: null, // Для default карточек всегда null
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt
+      };
+    });
+
+    return defaultCards;
+  } catch (error) {
+    console.error('Error getting default date cards:', error);
+    throw new Error('Не удалось загрузить стандартные карточки');
+  }
+}
+
+export async function getCoupleDateCards(coupleId: string) {
+  const snapshot = await getDocs(dataPoints.coupleDateCards(coupleId));
+  return snapshot.docs.map(doc => doc.data());
+}
+
+export async function updateDateCard(cardId: string, updates: Partial<Omit<DateCardType, 'id'>>) {
+  await updateDoc(dataPoints.dateCardDoc(cardId), {
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function deleteDateCard(cardId: string) {
+  await deleteDoc(dataPoints.dateCardDoc(cardId));
+}
+
+//ACTIVE COUPLE CARDS OPERATIONS
+
+export async function getActiveCoupleCards(coupleId: string) {
+  const snapshot = await getDocs(dataPoints.activeCoupleCardsForCouple(coupleId));
+  if (snapshot.empty) return null;
+  return snapshot.docs[0].data();
+}
+
+export async function createActiveCoupleCards(coupleId: string, cardIds: string[]) {
+  const id = v4();
+  const now = new Date().toISOString();
+  
+  await setDoc(dataPoints.activeCoupleCardsDoc(id), {
+    id,
+    coupleId,
+    cardIds,
+    lastUpdated: now,
+  });
+
+  return id;
+}
+
+export async function updateActiveCoupleCards(id: string, cardIds: string[]) {
+  await updateDoc(dataPoints.activeCoupleCardsDoc(id), {
+    cardIds,
+    lastUpdated: new Date().toISOString(),
+  });
+}
+
+//SWIPE SESSIONS OPERATIONS
+
+export async function createSwipeSession(params: {
+  coupleId: string;
+  activeCoupleCardsId: string;
+  createdBy: string;
+}) {
+  const sessionId = `${params.coupleId}_${new Date().toISOString()}`;
+  const id = v4();
+  
+  await setDoc(dataPoints.swipeSessionDoc(id), {
+    id,
+    sessionId,
+    coupleId: params.coupleId,
+    activeCoupleCardsId: params.activeCoupleCardsId,
+    status: 'active',
+    createdBy: params.createdBy,
+    createdAt: new Date().toISOString(),
+    completedUserIds: [],
+    matchedCards: [],
+    swipes: {},
+  });
+
+  return id;
+}
+
+export async function getActiveSwipeSession(coupleId: string) {
+  const snapshot = await getDocs(dataPoints.activeSwipeSessionsForCouple(coupleId));
+  if (snapshot.empty) return null;
+  return snapshot.docs[0].data();
+}
+
+export async function updateUserSwipes(
+  sessionId: string,
+  userId: string,
+  chosenCards: string[],
+  declinedCards: string[]
+) {
+  const updates = {
+    [`swipes.${userId}`]: {
+      chosenActiveCards: chosenCards,
+      declinedActiveCards: declinedCards,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+
+  await updateDoc(dataPoints.swipeSessionDoc(sessionId), updates);
+}
+
+export async function markUserCompletedSwipes(sessionId: string, userId: string) {
+  const session = await getDoc(dataPoints.swipeSessionDoc(sessionId));
+  if (!session.exists()) throw new Error('Сессия не найдена');
+
+  const data = session.data();
+  const completedUserIds = data.completedUserIds || [];
+
+  if (!completedUserIds.includes(userId)) {
+    await updateDoc(dataPoints.swipeSessionDoc(sessionId), {
+      completedUserIds: [...completedUserIds, userId],
+      updatedAt: new Date().toISOString(),
+    });
+  }
+}
+
+export async function updateMatchedCards(sessionId: string, matchedCards: string[]) {
+  await updateDoc(dataPoints.swipeSessionDoc(sessionId), {
+    matchedCards,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function completeSwipeSession(sessionId: string) {
+  await updateDoc(dataPoints.swipeSessionDoc(sessionId), {
+    status: 'completed',
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+//SCHEDULED DATES OPERATIONS
+
+export async function createScheduledDate(params: {
+  coupleId: string;
+  dateCardId: string;
+  proposedTime: string;
+  userIds: string[];
+}) {
+  const id = v4();
+  const now = new Date().toISOString();
+  
+  //инициализируются ответы пользователей как null
+  const userResponses = params.userIds.reduce((acc, userId) => {
+    acc[userId] = null;
+    return acc;
+  }, {} as Record<string, null>);
+
+  await setDoc(dataPoints.scheduledDateDoc(id), {
+    id,
+    coupleId: params.coupleId,
+    dateCardId: params.dateCardId,
+    proposedTime: params.proposedTime,
+    status: 'pending',
+    userResponses,
+    createdAt: now,
+  });
+
+  return id;
+}
+
+export async function getScheduledDates(coupleId: string) {
+  const snapshot = await getDocs(dataPoints.scheduledDatesForCouple(coupleId));
+  return snapshot.docs.map(doc => doc.data());
+}
+
+export async function updateScheduledDateResponse(
+  dateId: string,
+  userId: string,
+  response: boolean
+) {
+  const dateRef = dataPoints.scheduledDateDoc(dateId);
+  const dateSnap = await getDoc(dateRef);
+
+  if (!dateSnap.exists()) throw new Error('Свидание не найдено');
+
+  const updates = {
+    [`userResponses.${userId}`]: response,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Проверяем все ли ответили и обновляем статус
+  const data = dateSnap.data();
+  const allResponses = Object.values({
+    ...data.userResponses,
+    [userId]: response,
+  });
+
+  if (allResponses.every(val => val !== null)) {
+    updates.status = allResponses.every(val => val) ? 'confirmed' : 'rejected';
+  }
+
+  await updateDoc(dateRef, updates);
+}
+
+export async function cancelScheduledDate(dateId: string) {
+  await updateDoc(dataPoints.scheduledDateDoc(dateId), {
+    status: 'cancelled',
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+//SUBSCRIPTIONS
+
+export function subscribeToActiveCoupleCards(
+  coupleId: string,
+  callback: (data: ActiveCoupleCardsType | null) => void
+) {
+  const q = dataPoints.activeCoupleCardsForCouple(coupleId);
+  
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.empty ? null : snapshot.docs[0].data());
+  });
+}
+
+export function subscribeToActiveSwipeSession(
+  coupleId: string,
+  callback: (session: SwipeSessionType | null) => void
+) {
+  const q = dataPoints.activeSwipeSessionsForCouple(coupleId);
+  
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.empty ? null : snapshot.docs[0].data());
+  });
+}
+
+export function subscribeToScheduledDates(
+  coupleId: string,
+  callback: (dates: ScheduledDateType[]) => void
+) {
+  const q = dataPoints.scheduledDatesForCouple(coupleId);
+  
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.docs.map(doc => doc.data()));
+  });
 }
