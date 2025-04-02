@@ -787,12 +787,28 @@ export async function cancelScheduledDate(dateId: string) {
 
 //SUBSCRIPTIONS
 
+// export const subscribeToSession = (
+//   sessionId: string,
+//   callback: (session: SwipeSessionType| null) => void
+// ) => {
+//   return onSnapshot(doc(db, 'swipeSessions', sessionId), (doc) => {
+//     callback(doc.exists() ? doc.data() as SwipeSessionType: null);
+//   });
+// };
+
 export const subscribeToSession = (
   sessionId: string,
-  callback: (session: SwipeSessionType| null) => void
+  callback: (session: SwipeSessionType | null) => void,
+  onCompletion?: () => void // Добавляем опциональный колбэк
 ) => {
   return onSnapshot(doc(db, 'swipeSessions', sessionId), (doc) => {
-    callback(doc.exists() ? doc.data() as SwipeSessionType: null);
+    const session = doc.exists() ? doc.data() as SwipeSessionType : null;
+    callback(session);
+    
+    // Вызываем колбэк завершения если нужно
+    if (session?.completedUserIds.length === 2 && onCompletion) {
+      onCompletion();
+    }
   });
 };
 
@@ -829,3 +845,20 @@ export function subscribeToScheduledDates(
     callback(snapshot.docs.map(doc => doc.data()));
   });
 }
+
+export const setupSessionListener = (sessionId: string) => {
+  const sessionRef = doc(db, 'swipeSessions', sessionId);
+  
+  const unsubscribe = onSnapshot(sessionRef, async (doc) => {
+    const session = doc.data() as SwipeSessionType;
+    
+    if (!session) return;
+    
+    if (session.completedUserIds.length === 2 && session.status === 'active') {
+      await findAndUpdateMatches(sessionId);
+      unsubscribe();
+    }
+  });
+
+  return unsubscribe;
+};

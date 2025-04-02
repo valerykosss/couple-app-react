@@ -10,7 +10,8 @@ import {
   getLatestSwipeSession,
   markUserCompletedSwipes,
   subscribeToSession,
-  updateUserSwipes
+  updateUserSwipes,
+  findAndUpdateMatches
 } from '../api/firebase/firebase';
 import { WaitingScreen } from '../components/WaitingScreen';
 import { TinderCard } from '../components/TinderCard';
@@ -32,6 +33,7 @@ const containerStyle: React.CSSProperties = {
 };
 
 const COMPLETED_STATUSES = ['matchesFound', 'completedSuccessfully', 'noMatchesFound'];
+
 
 export const TinderPage = () => {
   const [cards, setCards] = useState<CardWithNumericId[]>([]);
@@ -149,21 +151,48 @@ export const TinderPage = () => {
     loadData();
   }, []);
 
+  // useEffect(() => {
+  //   if (!currentSession?.id || !partnerId) return;
+
+  //   const unsubscribe = subscribeToSession(currentSession.id, (session) => {
+  //     if (session) {
+  //       setCurrentSession(session);
+  //       if (session.completedUserIds.includes(partnerId)) {
+  //         setPartnerCompleted(true);
+  //       }
+  //     }
+  //   });
+
+  //   return () => {
+  //     unsubscribe();
+  //   };
+  // }, [currentSession?.id, partnerId]);
+
   useEffect(() => {
     if (!currentSession?.id || !partnerId) return;
 
-    const unsubscribe = subscribeToSession(currentSession.id, (session) => {
-      if (session) {
-        setCurrentSession(session);
-        if (session.completedUserIds.includes(partnerId)) {
-          setPartnerCompleted(true);
-        }
+    const handleSessionCompletion = async () => {
+      try {
+        await findAndUpdateMatches(currentSession.id);
+      } catch (error) {
+        message.error('Failed to find matches');
       }
-    });
-
-    return () => {
-      unsubscribe();
     };
+
+    const unsubscribe = subscribeToSession(
+      currentSession.id,
+      (session) => {
+        if (session) {
+          setCurrentSession(session);
+          if (session.completedUserIds.includes(partnerId)) {
+            setPartnerCompleted(true);
+          }
+        }
+      },
+      handleSessionCompletion // Передаем колбэк для обработки завершения
+    );
+
+    return () => unsubscribe();
   }, [currentSession?.id, partnerId]);
 
   const handleSwipe = async (action: { id: string; direction: 'left' | 'right' }) => {
